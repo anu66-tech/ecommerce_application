@@ -1,0 +1,22 @@
+﻿.modal-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(30,34,28,.48); }
+
+.account-modal { position: relative; width: min(420px,100%); padding: 39px; background: var(--paper); box-shadow: 0 15px 50px rgba(25,30,24,.16); }
+
+.modal-close { position: absolute; top: 14px; right: 14px; display: grid; place-items: center; width: 32px; height: 32px; border: 0; background: transparent; cursor: pointer; }
+
+.account-modal h2 { margin: 10px 0; color: #384633; font-family: var(--serif); font-size: 29px; font-weight: 500; }
+
+.account-modal > p { margin-bottom: 22px; color: #81837a; font-size: 10px; }
+
+.account-modal form { display: flex; flex-direction: column; gap: 14px; }
+
+.account-modal .button { width: 100%; justify-content: space-between; margin-top: 4px; }
+
+.modal-orders { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 16px; color: #586650; font-size: 10px; }
+
+.confirmation-dialog-backdrop { position: fixed; z-index: 30; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(30,34,28,.48); }
+.confirmation-dialog { width: min(440px,100%); padding: 30px; background: var(--paper); box-shadow: 0 15px 50px rgba(25,30,24,.16); }
+.confirmation-dialog h2 { margin: 10px 0; color: #384633; font-family: var(--serif); font-size: 25px; font-weight: 500; }
+.confirmation-dialog p { margin: 0; color: #81837a; font-size: 11px; line-height: 1.6; }
+.confirmation-dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 9px; margin-top: 24px; }
+.confirmation-dialog-actions .button { min-height: 39px; padding: 0 13px; font-size: 9px; }

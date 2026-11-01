@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model AppStore {
+  id          Int     @id @db.SmallInt
+  data        Json
+  initialized Boolean @default(false)
+
+  @@map("app_store")
+}
+
+model Category {
+  id        String    @id
+  name      String    @unique
+  icon      String?
+  products  Product[]
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id
+  name        String
+  category    String
+  categoryRef Category @relation(fields: [category], references: [name], onUpdate: Cascade, onDelete: Restrict)
+  brand       String   @default("Independent")
+  price       Float
+  oldPrice    Float?   @map("old_price")
+  rating      Float    @default(0)
+  reviews     Int      @default(0)
+  stock       Int      @default(0)
+  featured    Boolean  @default(false)
+  bestSeller  Boolean  @default(false) @map("best_seller")
+  badge       String   @default("")
+  color       String   @default("sand")
+  image       String?
+  description String   @default("")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@index([name])
+  @@map("products")
+}

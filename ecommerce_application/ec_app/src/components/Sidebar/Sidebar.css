@@ -1,0 +1,158 @@
+.app-shell {
+  display: grid;
+  grid-template-columns: 238px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.app-main {
+  min-width: 0;
+}
+
+.app-shell.admin-layout {
+  grid-template-columns: 238px minmax(0, 1fr);
+  background: #f8f8f5;
+}
+
+.main-sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  height: 100vh;
+  min-height: 500px;
+  flex-direction: column;
+  padding: 28px 16px 16px;
+  border-right: 1px solid #e9e6df;
+  background: #fffefa;
+}
+
+.main-sidebar-brand {
+  display: block;
+  padding: 0 10px 24px;
+  font-size: 27px;
+}
+
+.main-sidebar-nav {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.main-sidebar-heading {
+  margin: 14px 10px 5px;
+  color: #999a90;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .15em;
+}
+
+.main-sidebar-link {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 11px;
+  padding: 0 10px;
+  border-radius: 2px;
+  color: #72776b;
+  font-size: 11px;
+  transition: background .18s, color .18s;
+}
+
+.main-sidebar-link:hover,
+.main-sidebar-link.active {
+  background: #edf0e8;
+  color: #465741;
+}
+
+.main-sidebar-link.active {
+  font-weight: 600;
+}
+
+.main-sidebar-icon {
+  display: grid;
+  width: 18px;
+  place-items: center;
+  color: #7d8676;
+  font-size: 16px;
+}
+
+.main-sidebar-count {
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  margin-left: auto;
+  padding: 0 4px;
+  border-radius: 99px;
+  background: #485b47;
+  color: white;
+  font-size: 9px;
+}
+
+.admin-nav-heading {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #efede8;
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-shell.admin-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .main-sidebar {
+    position: sticky;
+    z-index: 10;
+    top: 0;
+    height: auto;
+    min-height: 0;
+    padding: 8px 12px;
+    border-right: 0;
+    border-bottom: 1px solid #e9e6df;
+  }
+
+  .main-sidebar-brand {
+    display: none;
+  }
+
+  .main-sidebar-nav {
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .main-sidebar-heading {
+    flex: 0 0 auto;
+    margin: 0 4px;
+    font-size: 7px;
+  }
+
+  .admin-nav-heading {
+    margin-left: 8px;
+    padding-top: 0;
+    border-top: 0;
+    border-left: 1px solid #e9e6df;
+    padding-left: 9px;
+  }
+
+  .main-sidebar-link {
+    min-height: 34px;
+    flex: 0 0 auto;
+    gap: 6px;
+    padding: 0 8px;
+    font-size: 9px;
+  }
+
+  .main-sidebar-icon {
+    width: auto;
+    font-size: 13px;
+  }
+}

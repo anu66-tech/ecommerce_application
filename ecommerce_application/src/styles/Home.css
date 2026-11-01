@@ -1,0 +1,131 @@
+.button { display: inline-flex; align-items: center; justify-content: center; gap: 16px; min-height: 49px; padding: 0 22px; border: 1px solid transparent; border-radius: 2px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .2s, transform .2s; }
+
+.button:hover { transform: translateY(-1px); }
+
+.button-dark { background: var(--green); color: white; }
+
+.button-dark:hover { background: var(--green-dark); }
+
+.button-light { background: #fff; color: var(--ink); }
+
+.eyebrow { color: #84897a; font-size: 9px; font-weight: 700; letter-spacing: .16em; }
+
+.home-hero { display: grid; grid-template-columns: 43% 57%; min-height: 500px; padding: 51px 0 54px; }
+
+.hero-copy { align-self: center; padding: 15px 26px 13px 0; }
+
+.hero-copy > p { max-width: 355px; margin: 0 0 26px; color: #6e7169; font-size: 13px; line-height: 1.85; }
+
+.hero-copy .button { min-width: 205px; }
+
+.hero-note { display: flex; align-items: center; gap: 11px; margin-top: 30px; color: #898a82; font-size: 10px; }
+
+.hero-image { position: relative; min-height: 400px; overflow: hidden; background: #d6d0c3; }
+
+.hero-image > img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; object-position: center 52%; }
+
+.hero-image::after { content: ''; position: absolute; inset: 45% 0 0; background: linear-gradient(transparent, rgba(26,32,25,.54)); }
+
+.hero-image-label { position: absolute; z-index: 1; bottom: 29px; left: 31px; display: flex; flex-direction: column; gap: 7px; color: white; }
+
+.hero-image-label span { font-size: 8px; letter-spacing: .17em; }
+
+.hero-image-label b { font-family: var(--serif); font-size: 23px; font-weight: 500; }
+
+.hero-stamp { position: absolute; z-index: 1; top: 23px; right: 23px; width: 68px; height: 68px; border: 1px solid rgba(255,255,255,.75); border-radius: 50%; display: grid; align-content: center; text-align: center; color: white; font-family: var(--serif); font-size: 13px; font-style: italic; line-height: 1.1; transform: rotate(12deg); }
+
+.trust-strip { display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 16px; padding: 20px 7%; background: #f1f0e9; color: #555b4e; font-size: 10px; letter-spacing: .03em; }
+
+.trust-strip b { margin-right: 8px; color: #a67d5c; font-size: 13px; }
+
+.section-block { padding-top: 73px; padding-bottom: 81px; }
+
+.section-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 28px; }
+
+.section-heading h2, .newsletter h2 { margin: 8px 0 0; color: #344333; font-family: var(--serif); font-size: 34px; font-weight: 500; letter-spacing: -.7px; }
+
+.text-link { display: inline-flex; align-items: center; gap: 9px; color: #4f5d49; font-size: 11px; font-weight: 600; }
+
+.text-link:hover { color: #9a6f4f; }
+
+.quote-band { padding: 48px 20px 45px; text-align: center; background: #eef0e8; }
+
+.quote-band > p { max-width: 610px; margin: 14px auto 14px; color: #40503f; font-family: var(--serif); font-size: clamp(23px,3vw,33px); line-height: 1.4; }
+
+.quote-band > span:last-child { color: #85877d; font-size: 8px; letter-spacing: .14em; }
+
+.category-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 72px 0; }
+
+.category-cards a { position: relative; aspect-ratio: 1.58; overflow: hidden; background: #e4dfd5; }
+
+.category-cards img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s; }
+
+.category-cards a:hover img { transform: scale(1.035); }
+
+.category-cards a::after { position: absolute; inset: 42% 0 0; content: ''; background: linear-gradient(transparent,rgba(21,25,20,.62)); }
+
+.category-cards a > span { position: absolute; z-index: 1; bottom: 22px; left: 23px; display: flex; flex-direction: column; gap: 8px; color: white; font-family: var(--serif); font-size: 22px; }
+
+.category-cards a > span b { font-family: 'DM Sans', sans-serif; font-size: 9px; font-weight: 500; letter-spacing: .06em; }
+
+.newsletter { padding: 54px 20px 58px; background: #f1eee7; text-align: center; }
+
+.newsletter h2 { margin-top: 9px; font-size: 31px; }
+
+.newsletter > p { margin-top: 9px; color: #73756d; font-size: 11px; }
+
+.newsletter form { display: flex; max-width: 440px; margin: 24px auto 10px; border-bottom: 1px solid #bcb9ae; }
+
+.newsletter input { flex: 1; min-width: 0; height: 42px; border: 0; background: transparent; color: var(--ink); font-size: 11px; outline: none; }
+
+.newsletter button { display: flex; align-items: center; gap: 8px; border: 0; background: transparent; color: #445440; font-size: 10px; font-weight: 700; cursor: pointer; }
+
+.newsletter-note { color: #929188; font-size: 9px; }
+
+.home-categories { padding: 58px 0 14px; }
+
+.home-categories .section-heading { margin-bottom: 20px; }
+
+.home-categories .section-heading h2 { font-size: 30px; }
+
+.category-grid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 13px; }
+
+.category-tile { display: flex; min-height: 120px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px solid #eeece5; background: #f6f4ee; color: #465341; transition: background .2s, transform .2s; }
+
+.category-tile:hover { transform: translateY(-3px); background: #edf0e8; }
+
+.category-tile > span { color: #a27e5b; font-size: 23px; }
+
+.category-tile > b { font-family: var(--serif); font-size: 14px; font-weight: 500; }
+
+.category-tile > small { color: #898b81; font-size: 8px; }
+
+
+@media (max-width: 1050px) {
+.category-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+
+@media (max-width: 760px) {
+.home-hero { grid-template-columns: 1fr; gap: 24px; padding: 79px 0 29px; }
+.hero-copy { padding: 9px 0 0; }
+.hero-copy h1 { font-size: 52px; }
+.hero-copy > p { max-width: 420px; }
+.hero-image { min-height: 320px; }
+.trust-strip { justify-content: center; gap: 11px 23px; padding: 17px 18px; font-size: 9px; }
+.section-block { padding-top: 54px; padding-bottom: 55px; }
+.section-heading h2, .newsletter h2 { font-size: 28px; }
+.category-cards { gap: 12px; padding: 48px 0; }
+.category-cards a > span { bottom: 13px; left: 13px; font-size: 17px; }
+.category-cards a > span b { font-size: 8px; }
+.quote-band { padding: 37px 18px; }
+.newsletter { padding: 43px 18px; }
+}
+
+@media (max-width: 430px) {
+.hero-copy h1 { font-size: 46px; }
+.hero-image { min-height: 260px; }
+.section-heading { align-items: start; gap: 10px; }
+.section-heading h2 { font-size: 24px; }
+.section-heading > .text-link { margin-top: 20px; font-size: 9px; white-space: nowrap; }
+.category-cards a > span { font-size: 14px; }
+}

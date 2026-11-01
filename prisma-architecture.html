@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prisma ORM Architecture | Ecommerce Application</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --card-border: #1f2937;
+      --card-hover-border: #374151;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.15);
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --code-bg: #030712;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 2rem;
+    }
+
+    .badge-bar {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.3rem 0.75rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .badge-cyan { background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); }
+    .badge-emerald { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(to right, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 780px;
+    }
+
+    /* Section & Cards */
+    section {
+      margin-bottom: 3.5rem;
+    }
+
+    .section-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .section-title span {
+      display: inline-block;
+      width: 4px;
+      height: 1.2rem;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      transition: border-color 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: var(--card-hover-border);
+    }
+
+    .diagram-container {
+      overflow-x: auto;
+      display: flex;
+      justify-content: center;
+      padding: 1rem 0;
+      min-height: 250px;
+    }
+
+    .mermaid {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      margin-top: 1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.92rem;
+    }
+
+    th {
+      background: #1f2937;
+      color: #e5e7eb;
+      padding: 0.9rem 1rem;
+      font-weight: 600;
+      border-bottom: 1px solid #374151;
+    }
+
+    td {
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid #1f2937;
+      color: var(--text-muted);
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text);
+    }
+
+    code {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85em;
+      background: var(--code-bg);
+      padding: 0.2rem 0.45rem;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #93c5fd;
+    }
+
+    /* Grid for quick links */
+    .grid-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .link-card {
+      background: #131d2e;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s ease;
+    }
+
+    .link-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px var(--accent-glow);
+    }
+
+    .link-card strong {
+      font-size: 1rem;
+      color: #93c5fd;
+    }
+
+    .link-card span {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* Highlights list */
+    .pattern-card {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 1.5rem;
+      padding: 1.25rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .pattern-card:last-child {
+      border-bottom: none;
+    }
+
+    @media (max-width: 768px) {
+      .pattern-card {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="badge-bar">
+        <span class="badge badge-blue">NestJS 12</span>
+        <span class="badge badge-cyan">Prisma ORM 7</span>
+        <span class="badge badge-emerald">PostgreSQL</span>
+        <span class="badge badge-amber">@prisma/adapter-pg</span>
+      </div>
+      <h1>Prisma ORM Architecture</h1>
+      <p class="subtitle">
+        Visual breakdown of data models, database code-generation pipelines, connection lifecycles, and relational query synchronization in the backend.
+      </p>
+    </header>
+
+    <!-- 1. ER Diagram -->
+    <section>
+      <h2 class="section-title"><span></span> 1. Entity-Relationship (ER) Model</h2>
+      <div class="card">
+        <p style="margin-bottom: 1rem; color: var(--text-muted);">
+          Combines a strictly typed 1-to-many relational catalog with a JSONB document store for dynamic state:
+        </p>
+        <div class="diagram-container">
+          <pre class="mermaid">
+erDiagram
+    CATEGORIES ||--o{ PRODUCTS : "1 Category has many Products"
+    
+    CATEGORIES {
+        string id PK "Unique Category ID"
+        string name UK "Unique name referenced as FK"
+        string icon "Optional UI icon string"
+        timestamp created_at "Created timestamp"
+        timestamp updated_at "Auto-updated timestamp"
+    }
+
+    PRODUCTS {
+        string id PK "p-UUID format"
+        string name "Product title"
+        string category FK "Ref categories(name) CASCADE/RESTRICT"
+        string brand "Brand label (Independent)"
+        float price "Unit price in INR (> 0)"
+        float old_price "Nullable original price"
+        float rating "Product rating score"
+        int reviews "Total review count"
+        int stock "Available inventory units (>= 0)"
+        boolean featured "Featured display flag"
+        boolean best_seller "Bestseller badge flag"
+        string badge "Badge text (e.g. Sale)"
+        string color "Color identifier (e.g. sand)"
+        string image "Image URL string"
+        string description "Item description text"
+        timestamp created_at "Created timestamp"
+        timestamp updated_at "Auto-updated timestamp"
+    }
+
+    APP_STORE {
+        smallint id PK "Fixed record key (id = 1)"
+        jsonb data "Cart, wishlist, orders, user state"
+        boolean initialized "Flags initial migration"
+    }
+          </pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Pipeline Architecture -->
+    <section>
+      <h2 class="section-title"><span></span> 2. Prisma Driver & Code-Generation Pipeline</h2>
+      <div class="card">
+        <div class="diagram-container">
+          <pre class="mermaid">
+flowchart LR
+    subgraph ConfigLayer["1. Schema & Config"]
+        Schema["schema.prisma<br/><b>generator client</b><br/><b>provider = postgresql</b>"]
+        Config["prisma.config.ts"]
+    end
+
+    subgraph CLILayer["2. Prisma CLI"]
+        Generate["npm run db:generate<br/>(prisma generate)"]
+        Migrate["npm run db:migrate<br/>(prisma migrate deploy)"]
+    end
+
+    subgraph GeneratedLayer["3. Generated Types & Client"]
+        ClientCode["src/generated/prisma/<br/>- PrismaClient<br/>- Models: Product, Category, AppStore"]
+    end
+
+    subgraph NestLayer["4. NestJS Application"]
+        Adapter["PrismaPg Adapter<br/>(@prisma/adapter-pg)"]
+        Service["PrismaService<br/>(extends PrismaClient)"]
+        Consumers["StoreService &<br/>ProductsService"]
+    end
+
+    subgraph DatabaseLayer["5. Database"]
+        PG[("PostgreSQL Database<br/>DATABASE_URL")]
+    end
+
+    Schema --> Generate
+    Migrate --> PG
+    Generate --> ClientCode
+    ClientCode --> Service
+    Adapter --> Service
+    Service --> Consumers
+    Adapter <-->|Pool Connection| PG
+          </pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Lifecycle Sequence -->
+    <section>
+      <h2 class="section-title"><span></span> 3. Lifecycle & Query Execution Flow</h2>
+      <div class="card">
+        <div class="diagram-container">
+          <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Client as Frontend / HTTP Client
+    participant Ctrl as NestJS Controllers
+    participant Svc as StoreService / ProductsService
+    participant PS as PrismaService
+    participant PG as PostgreSQL
+
+    Note over PS,PG: Boot Phase (onModuleInit)
+    PS->>PG: $connect() via PrismaPg Adapter
+    PG-->>PS: Connection established
+
+    Note over Client,PG: Request & Query Phase
+    Client->>Ctrl: GET /store or POST /products
+    Ctrl->>Svc: Action call
+    Svc->>PS: prisma.product.create() / $transaction()
+    PS->>PG: Parameterized SQL Query
+    PG-->>PS: DB Row Results / JSONB
+    PS-->>Svc: Typed Prisma Entities
+    Svc-->>Ctrl: Processed Response
+    Ctrl-->>Client: HTTP 200 / 201 Response
+
+    Note over PS,PG: Shutdown Phase (onModuleDestroy)
+    PS->>PG: $disconnect()
+    PG-->>PS: Pool connections released
+          </pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Query Patterns Table -->
+    <section>
+      <h2 class="section-title"><span></span> 4. Query & Mutation Patterns in the App</h2>
+      <div class="card">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Pattern</th>
+                <th>Prisma API Call</th>
+                <th>Service File</th>
+                <th>Behavior & Safeguards</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Point Lookup</strong></td>
+                <td><code>prisma.product.findUnique({ where: { id } })</code></td>
+                <td><code>products.service.ts</code></td>
+                <td>Single index scan by primary key; throws <code>404 NotFoundException</code> if not present.</td>
+              </tr>
+              <tr>
+                <td><strong>Catalog Listing</strong></td>
+                <td><code>prisma.product.findMany({ orderBy: { createdAt: 'desc' } })</code></td>
+                <td><code>products.service.ts</code></td>
+                <td>Returns all catalog items sorted newest first.</td>
+              </tr>
+              <tr>
+                <td><strong>FK Integrity Guard</strong></td>
+                <td><code>prisma.category.findUnique({ where: { name } })</code></td>
+                <td><code>products.service.ts</code></td>
+                <td>Validates category exists prior to product insertion/patching to avoid relational constraint failure.</td>
+              </tr>
+              <tr>
+                <td><strong>ACID Transaction</strong></td>
+                <td><code>prisma.$transaction(async (tx) => { ... })</code></td>
+                <td><code>store.service.ts</code></td>
+                <td>Upserts categories, upserts products, and deletes pruned items in an atomic database transaction.</td>
+              </tr>
+              <tr>
+                <td><strong>State Document Upsert</strong></td>
+                <td><code>prisma.appStore.upsert({ where: { id: 1 }, ... })</code></td>
+                <td><code>store.service.ts</code></td>
+                <td>Saves non-relational client state (cart, wishlist, orders) inside row <code>id: 1</code> as <code>JSONB</code>.</td>
+              </tr>
+              <tr>
+                <td><strong>Catalog Auto-Migration</strong></td>
+                <td><code>productCount === 0 && categoryCount === 0</code></td>
+                <td><code>store.service.ts</code></td>
+                <td>Detects first run with relational schema and imports products from stored JSON to PostgreSQL tables.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Key File References -->
+    <section>
+      <h2 class="section-title"><span></span> 5. Key File References</h2>
+      <div class="grid-links">
+        <div class="link-card">
+          <strong>schema.prisma</strong>
+          <span>backend/prisma/schema.prisma</span>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0.4rem;">
+            Declares <code>AppStore</code>, <code>Category</code>, and <code>Product</code> models with indexes and relations.
+          </p>
+        </div>
+        <div class="link-card">
+          <strong>prisma.service.ts</strong>
+          <span>backend/src/prisma/prisma.service.ts</span>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0.4rem;">
+            Binds Prisma to NestJS lifecycle via <code>OnModuleInit</code> ($connect) and <code>OnModuleDestroy</code> ($disconnect).
+          </p>
+        </div>
+        <div class="link-card">
+          <strong>store.service.ts</strong>
+          <span>backend/src/store.service.ts</span>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0.4rem;">
+            Implements hybrid catalog synchronization and atomic transactions with <code>prisma.$transaction</code>.
+          </p>
+        </div>
+        <div class="link-card">
+          <strong>products.service.ts</strong>
+          <span>backend/src/products.service.ts</span>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0.4rem;">
+            Handles CRUD operations, input sanitization, UUID generation, and category foreign key enforcement.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Mermaid.js ESM Loader -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        fontFamily: 'Inter, system-ui, sans-serif',
+        primaryColor: '#1e3a8a',
+        primaryTextColor: '#f8fafc',
+        primaryBorderColor: '#3b82f6',
+        lineColor: '#60a5fa',
+        secondaryColor: '#1e293b',
+        tertiaryColor: '#0f172a'
+      }
+    });
+  </script>
+</body>
+</html>
