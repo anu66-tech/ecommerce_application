@@ -19,10 +19,9 @@ status in the storefront header. The backend allows the Vite origin
 `http://localhost:5173` by default. If either app uses a different address, set
 `VITE_API_URL` for the frontend and `FRONTEND_URL` for the backend.
 
-This connection currently verifies backend availability only. Product, cart,
-and account data still use the frontend's local demo storage; those features
-need corresponding API endpoints and persistence before they are backed by
-NestJS.
+Product, cart, wishlist, orders, and account data are loaded directly from and
+persisted to the NestJS backend and PostgreSQL database via REST API calls. No
+browser localStorage is used.
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

@@ -37,6 +37,26 @@ export function initializeBackendStore(store) {
   });
 }
 
+export async function fetchProducts(filters = {}, { signal } = {}) {
+  const query = new URLSearchParams();
+  Object.entries(filters || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      query.set(key, String(value));
+    }
+  });
+
+  const response = await fetch(`${backendUrl}/products?${query}`, { signal });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Product request failed (${response.status}): ${detail}`);
+  }
+  return response.json();
+}
+
+export function searchProducts(searchTerm, filters = {}, { signal } = {}) {
+  return fetchProducts({ ...filters, q: searchTerm }, { signal });
+}
+
 export function saveBackendStoreValue(key, value) {
   return requestStore(`/${encodeURIComponent(key)}`, {
     method: 'PUT',

@@ -32,6 +32,7 @@ export const seedCategories = [
   { id: 'c-5', name: 'Home', icon: '⌂' },
   { id: 'c-6', name: 'Accessories', icon: '✳' },
 ]
+
 const defaults = {
   users: [],
   currentUser: null,
@@ -48,46 +49,14 @@ let backendReady = false
 let initialization
 let pendingSaves = Promise.resolve()
 
-function readLegacyStore() {
-  const legacyStore = { ...defaults }
-  Object.keys(defaults).forEach((key) => {
-    const value = localStorage.getItem(key)
-    if (value === null) return
-    try {
-      legacyStore[key] = JSON.parse(value)
-    } catch (error) {
-      console.error(`Could not migrate "${key}" from localStorage.`, error)
-    }
-  })
-
-  if (localStorage.getItem('catalogVersion') !== '"4"') {
-    const legacyCategories = { 'Home & Living': 'Home', Kitchen: 'Home', Wellness: 'Beauty' }
-    legacyStore.products = (legacyStore.products ?? []).map((product) => ({
-      ...product,
-      category: legacyCategories[product.category] ?? product.category,
-      brand: product.brand ?? 'Independent',
-      featured: product.featured ?? false,
-      bestSeller: product.bestSeller ?? false,
-    }))
-    legacyStore.categories = (legacyStore.categories ?? []).map((category) => ({
-      ...category,
-      name: legacyCategories[category.name] ?? category.name,
-    }))
-  }
-
-  return legacyStore
-}
-
 export function initializeStore() {
   if (!initialization) {
-    initialization = initializeBackendStore(readLegacyStore()).then((remoteStore) => {
+    initialization = initializeBackendStore(defaults).then((remoteStore) => {
       storeValues = { ...defaults, ...remoteStore }
       backendReady = true
       Object.keys(defaults).forEach((key) => {
-        localStorage.removeItem(key)
         window.dispatchEvent(new CustomEvent('store-update', { detail: { key } }))
       })
-      localStorage.removeItem('catalogVersion')
       return storeValues
     }).catch((error) => {
       initialization = undefined
@@ -125,14 +94,9 @@ export function useStore(key) {
     const refresh = (event) => {
       if (!event.detail || event.detail.key === key) setValue(getStore(key))
     }
-    const refreshStorage = (event) => {
-      if (event.key === key || event.key === null) setValue(getStore(key))
-    }
     window.addEventListener('store-update', refresh)
-    window.addEventListener('storage', refreshStorage)
     return () => {
       window.removeEventListener('store-update', refresh)
-      window.removeEventListener('storage', refreshStorage)
     }
   }, [key])
 

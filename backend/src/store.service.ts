@@ -199,6 +199,8 @@ export class StoreService {
         color: product.color,
         ...(product.image ? { image: product.image } : {}),
         description: product.description,
+        createdAt: product.createdAt,
+        updatedAt: product.updatedAt,
       })),
     };
   }

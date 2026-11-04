@@ -1,6 +1,6 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useMemo, useState } from "react";
-import { checkBackendHealth } from "../../api/backend.js";
+import { checkBackendHealth, fetchProducts } from "../../api/backend.js";
 import {
   addToCart,
   clearCart,
@@ -542,7 +542,7 @@ export function HomePage({ products, categories, wishlist, onWish, onAdd, onBuyN
       <HomeProductSection
         eyebrow="HANDPICKED FOR YOU"
         title="Featured products."
-        products={featured.length ? featured : products}
+        products={products}
         wishlist={wishlist}
         onWish={onWish}
         onAdd={onAdd}
@@ -610,6 +610,8 @@ export function ProductsPage({
   initialMaxPrice = "",
   initialMinimumRating = "0",
   initialInStockOnly = false,
+  initialSort = "featured",
+  initialPage = "1",
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(initialSearch);
@@ -620,65 +622,138 @@ export function ProductsPage({
   const [maxPrice, setMaxPrice] = useState(initialMaxPrice);
   const [minimumRating, setMinimumRating] = useState(initialMinimumRating);
   const [inStockOnly, setInStockOnly] = useState(initialInStockOnly);
-  const [sort, setSort] = useState("featured");
-  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState(initialSort);
+  const [page, setPage] = useState(() => {
+    const parsedPage = Number(initialPage);
+    return Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  });
+
+  const urlQ = searchParams.get("q") ?? "";
+  const urlCategory = searchParams.get("category") ?? "All";
+  const urlBrand = searchParams.get("brand") ?? "All";
+  const urlMinPrice = searchParams.get("minPrice") ?? "";
+  const urlMaxPrice = searchParams.get("maxPrice") ?? "";
+  const urlRating = searchParams.get("rating") ?? "0";
+  const urlInStock = searchParams.get("inStock") === "1";
+  const urlSort = searchParams.get("sort") ?? "featured";
+  const urlPage = Number(searchParams.get("page") ?? 1);
+
+  useEffect(() => {
+    if (urlQ !== search && debouncedSearch === search) {
+      setSearch(urlQ);
+    }
+  }, [urlQ]);
+
+  useEffect(() => {
+    setCategory(urlCategory);
+  }, [urlCategory]);
+
+  useEffect(() => {
+    setBrand(urlBrand);
+  }, [urlBrand]);
+
+  useEffect(() => {
+    setMinPrice(urlMinPrice);
+  }, [urlMinPrice]);
+
+  useEffect(() => {
+    setMaxPrice(urlMaxPrice);
+  }, [urlMaxPrice]);
+
+  useEffect(() => {
+    setMinimumRating(urlRating);
+  }, [urlRating]);
+
+  useEffect(() => {
+    setInStockOnly(urlInStock);
+  }, [urlInStock]);
+
+  useEffect(() => {
+    setSort(urlSort);
+  }, [urlSort]);
+
+  useEffect(() => {
+    const parsed = Number.isInteger(urlPage) && urlPage > 0 ? urlPage : 1;
+    setPage(parsed);
+  }, [urlPage]);
   const pageSize = 8;
+  const [catalog, setCatalog] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const brands = useMemo(
-    () =>
-      [
-        ...new Set(products.map((product) => product.brand).filter(Boolean)),
-      ].sort(),
+    () => [...new Set(products.map((product) => product.brand).filter(Boolean))].sort(),
     [products],
   );
-  const filtered = useMemo(() => {
-    let result = products.filter((product) => {
-      const matchesSearch =
-        `${product.name} ${product.category} ${product.brand ?? ""}`
-          .toLowerCase()
-          .includes(debouncedSearch.trim().toLowerCase());
-      const matchesCategory =
-        category === "All" || product.category === category;
-      const matchesBrand = brand === "All" || product.brand === brand;
-      const matchesMinPrice =
-        minPrice === "" || product.price >= Number(minPrice);
-      const matchesMaxPrice =
-        maxPrice === "" || product.price <= Number(maxPrice);
-      const matchesRating = product.rating >= Number(minimumRating);
-      const matchesAvailability = !inStockOnly || product.stock > 0;
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesBrand &&
-        matchesMinPrice &&
-        matchesMaxPrice &&
-        matchesRating &&
-        matchesAvailability
-      );
-    });
-    if (sort === "price-low")
-      result = [...result].sort((a, b) => a.price - b.price);
-    if (sort === "price-high")
-      result = [...result].sort((a, b) => b.price - a.price);
-    if (sort === "rating")
-      result = [...result].sort((a, b) => b.rating - a.rating);
-    return result;
-  }, [
-    products,
-    debouncedSearch,
-    category,
-    brand,
-    minPrice,
-    maxPrice,
-    minimumRating,
-    inStockOnly,
-    sort,
-  ]);
-  const pageCount = Math.ceil(filtered.length / pageSize);
-  const currentPage = Math.min(page, Math.max(pageCount, 1));
-  const visibleProducts = filtered.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
+  const productQuery = useMemo(
+    () => ({
+      page,
+      limit: pageSize,
+      q: debouncedSearch.trim(),
+      category: category === "All" ? "" : category,
+      brand: brand === "All" ? "" : brand,
+      minPrice,
+      maxPrice,
+      rating: minimumRating === "0" ? "" : minimumRating,
+      inStock: inStockOnly ? "true" : "",
+      sort,
+      orderBy: sort === 'featured' || sort === 'updatedAt' ? 'updatedAt' : undefined,
+    }),
+    [
+      page,
+      pageSize,
+      debouncedSearch,
+      category,
+      brand,
+      minPrice,
+      maxPrice,
+      minimumRating,
+      inStockOnly,
+      sort,
+    ],
   );
+  const requestKey = JSON.stringify(productQuery);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchProducts(productQuery, { signal: controller.signal })
+      .then((result) => {
+        if (controller.signal.aborted) return;
+        setCatalog({ ...result, requestKey });
+        setLoadError(null);
+        setPage(result.page);
+        setSearchParams((params) => {
+          if (result.page === 1) params.delete("page");
+          else params.set("page", String(result.page));
+          return params;
+        });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setLoadError({ requestKey, message: error.message });
+        }
+      });
+
+    return () => controller.abort();
+  }, [productQuery, requestKey, setSearchParams]);
+  useEffect(() => {
+    const query = debouncedSearch.trim();
+    setSearchParams((params) => {
+      const queryChanged =
+        (params.get("q") ?? "") !== query || (!query && params.has("q"));
+      const sortChanged = (params.get("sort") ?? "featured") !== sort;
+
+      if (query) params.set("q", query);
+      else params.delete("q");
+      if (sort === "featured") params.delete("sort");
+      else params.set("sort", sort);
+      if (queryChanged || sortChanged) params.delete("page");
+      return params;
+    }, { replace: true });
+  }, [debouncedSearch, sort, setSearchParams]);
+  const hasCurrentCatalog = catalog?.requestKey === requestKey;
+  const currentError = loadError?.requestKey === requestKey ? loadError.message : "";
+  const loading = !hasCurrentCatalog && !currentError;
+  const pageCount = hasCurrentCatalog ? catalog.totalPages : 0;
+  const currentPage = hasCurrentCatalog ? catalog.page : page;
+  const visibleProducts = hasCurrentCatalog ? catalog.items : [];
   const clearFilters = () => {
     setSearch("");
     setCategory("All");
@@ -690,7 +765,7 @@ export function ProductsPage({
     setSort("featured");
     setPage(1);
     setSearchParams((params) => {
-      ["q", "category", "brand", "minPrice", "maxPrice", "rating", "inStock"]
+      ["q", "category", "brand", "minPrice", "maxPrice", "rating", "inStock", "sort", "page"]
         .forEach((key) => params.delete(key));
       return params;
     });
@@ -704,6 +779,7 @@ export function ProductsPage({
     setSearchParams((params) => {
       if (value === "All") params.delete(key);
       else params.set(key, value);
+      params.delete("page");
       return params;
     });
   };
@@ -712,6 +788,7 @@ export function ProductsPage({
     setSearchParams((params) => {
       if (isActive(value)) params.set(key, String(value));
       else params.delete(key);
+      params.delete("page");
       return params;
     });
   };
@@ -854,32 +931,45 @@ export function ProductsPage({
         </aside>
         <div className="catalog-results">
           <div className="catalog-results-head">
-            <span>{filtered.length} products</span>
+            <span>{hasCurrentCatalog ? catalog.total : 0} products</span>
             <label>
               Sort by
               <select
                 value={sort}
                 onChange={(event) => changeFilter(setSort)(event.target.value)}
               >
-                <option value="featured">Featured</option>
+                <option value="featured">Featured / Recently Updated</option>
+                <option value="updatedAt">Recently Updated</option>
                 <option value="price-low">Price: low to high</option>
                 <option value="price-high">Price: high to low</option>
                 <option value="rating">Top rated</option>
               </select>
             </label>
           </div>
-          <ProductGrid
-            products={visibleProducts}
-            wishlist={wishlist}
-            onWish={onWish}
-            onAdd={onAdd}
-            onBuyNow={onBuyNow}
-          />
+          {currentError ? (
+            <p role="alert">Could not load products: {currentError}</p>
+          ) : loading ? (
+            <p role="status">Loading products…</p>
+          ) : (
+            <ProductGrid
+              products={visibleProducts}
+              wishlist={wishlist}
+              onWish={onWish}
+              onAdd={onAdd}
+              onBuyNow={onBuyNow}
+            />
+          )}
           {pageCount > 1 && (
             <nav className="pagination" aria-label="Product pages">
               <button
                 disabled={currentPage === 1}
-                onClick={() => setPage(currentPage - 1)}
+                onClick={() => {
+                  setPage(currentPage - 1);
+                  setSearchParams((params) => {
+                    params.set("page", String(currentPage - 1));
+                    return params;
+                  });
+                }}
               >
                 Previous
               </button>
@@ -889,7 +979,13 @@ export function ProductsPage({
                     key={number}
                     className={currentPage === number ? "active" : ""}
                     aria-current={currentPage === number ? "page" : undefined}
-                    onClick={() => setPage(number)}
+                    onClick={() => {
+                      setPage(number);
+                      setSearchParams((params) => {
+                        params.set("page", String(number));
+                        return params;
+                      });
+                    }}
                   >
                     {number}
                   </button>
@@ -897,7 +993,13 @@ export function ProductsPage({
               )}
               <button
                 disabled={currentPage === pageCount}
-                onClick={() => setPage(currentPage + 1)}
+                onClick={() => {
+                  setPage(currentPage + 1);
+                  setSearchParams((params) => {
+                    params.set("page", String(currentPage + 1));
+                    return params;
+                  });
+                }}
               >
                 Next
               </button>
@@ -2081,7 +2183,15 @@ export function OrdersPage({ orders }) {
 }
 
 export default function CustomerLayout() {
-  const products = useStore("products");
+  const rawProducts = useStore("products");
+  const products = useMemo(() => {
+    return [...(rawProducts ?? [])].sort((a, b) => {
+      const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      if (timeA && timeB && timeA !== timeB) return timeB - timeA;
+      return (rawProducts ?? []).indexOf(a) - (rawProducts ?? []).indexOf(b);
+    });
+  }, [rawProducts]);
   const categories = useStore("categories");
   const cart = useSelector((state) => state.cart.items);
   const wishlist = useSelector((state) => state.wishlist.items);

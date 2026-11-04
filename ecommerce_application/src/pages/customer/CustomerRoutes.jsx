@@ -21,7 +21,25 @@ export function CustomerHomeRoute() {
 export function CustomerProductsRoute() {
   const { products, categories, wishlist, onWish, onAdd, onBuyNow } = useOutletContext()
   const [searchParams] = useSearchParams()
-  return <ProductsPage key={searchParams.toString()} products={products} categories={categories} wishlist={wishlist} onWish={onWish} onAdd={onAdd} onBuyNow={onBuyNow} initialSearch={searchParams.get('q') ?? ''} initialCategory={searchParams.get('category') ?? 'All'} initialBrand={searchParams.get('brand') ?? 'All'} initialMinPrice={searchParams.get('minPrice') ?? ''} initialMaxPrice={searchParams.get('maxPrice') ?? ''} initialMinimumRating={searchParams.get('rating') ?? '0'} initialInStockOnly={searchParams.get('inStock') === '1'} />
+  return (
+    <ProductsPage
+      products={products}
+      categories={categories}
+      wishlist={wishlist}
+      onWish={onWish}
+      onAdd={onAdd}
+      onBuyNow={onBuyNow}
+      initialSearch={searchParams.get('q') ?? ''}
+      initialCategory={searchParams.get('category') ?? 'All'}
+      initialBrand={searchParams.get('brand') ?? 'All'}
+      initialMinPrice={searchParams.get('minPrice') ?? ''}
+      initialMaxPrice={searchParams.get('maxPrice') ?? ''}
+      initialMinimumRating={searchParams.get('rating') ?? '0'}
+      initialInStockOnly={searchParams.get('inStock') === '1'}
+      initialSort={searchParams.get('sort') ?? 'featured'}
+      initialPage={searchParams.get('page') ?? '1'}
+    />
+  )
 }
 
 export function CustomerProductRoute() {

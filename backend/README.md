@@ -32,15 +32,15 @@ and make sure the database exists. Apply the schema with `npm run db:migrate`,
 then start the API with `npm run start:dev`. The frontend reads `VITE_API_URL`
 (default `http://localhost:3000`).
 
-On the first frontend connection, existing browser demo data is imported if the
-database has not yet been initialized. From then on, PostgreSQL is the source of
-truth and the frontend removes its old local-storage copies. `GET /store` reads
-the data, `PUT /store/initialize` imports it once, and `PUT /store/:key` saves a
-supported collection: `users`, `currentUser`, `products`, `categories`, `cart`,
-`wishlist`, `orders`, or `checkoutDraft`. Products and categories are stored in
-the relational `public.products` and `public.categories` tables. Users, carts,
-wishlists, and orders remain in the JSON `public.app_store` row. Existing catalog
-data in that row is copied into the relational tables when `/store` is first read.
+On the first frontend connection, default seed data is imported if the database
+has not yet been initialized. From then on, PostgreSQL is the source of truth.
+`GET /store` reads the data, `PUT /store/initialize` imports it once, and
+`PUT /store/:key` saves a supported collection: `users`, `currentUser`,
+`products`, `categories`, `cart`, `wishlist`, `orders`, or `checkoutDraft`.
+Products and categories are stored in the relational `public.products` and
+`public.categories` tables. Users, carts, wishlists, and orders remain in the
+JSON `public.app_store` row. Existing catalog data in that row is copied into the
+relational tables when `/store` is first read.
 
 The Prisma schema is in `prisma/schema.prisma`; its generated client is written
 to `src/generated/prisma` by running `npm run db:generate`. Validate the schema

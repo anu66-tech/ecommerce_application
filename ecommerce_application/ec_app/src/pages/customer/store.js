@@ -31,6 +31,7 @@ export const seedCategories = [
   { id: 'c-5', name: 'Home', icon: '⌂' },
   { id: 'c-6', name: 'Accessories', icon: '✳' },
 ]
+
 const defaults = {
   users: [],
   currentUser: null,
@@ -42,44 +43,18 @@ const defaults = {
   checkoutDraft: {},
 }
 
+let storeValues = { ...defaults }
+
 export function initializeStore() {
-  Object.entries(defaults).forEach(([key, value]) => {
-    if (localStorage.getItem(key) === null) {
-      localStorage.setItem(key, JSON.stringify(value))
-    }
-  })
-  if (localStorage.getItem('catalogVersion') !== '"4"') {
-    const legacyCategories = { 'Home & Living': 'Home', Kitchen: 'Home', Wellness: 'Beauty' }
-    const products = getStore('products') ?? []
-    const categories = getStore('categories') ?? []
-    localStorage.setItem('products', JSON.stringify(products.map((product) => ({
-      ...product,
-      category: legacyCategories[product.category] ?? product.category,
-      brand: product.brand ?? 'Independent',
-      featured: product.featured ?? false,
-      bestSeller: product.bestSeller ?? false,
-    }))))
-    localStorage.setItem('categories', JSON.stringify(categories.map((category) => ({
-      ...category,
-      name: legacyCategories[category.name] ?? category.name,
-    }))))
-    localStorage.setItem('catalogVersion', '"4"')
-  }
+  storeValues = { ...defaults }
 }
 
 export function getStore(key) {
-  const value = localStorage.getItem(key)
-  if (value === null) return defaults[key]
-  try {
-    return JSON.parse(value)
-  } catch (error) {
-    console.error(`Could not read "${key}" from localStorage.`, error)
-    return defaults[key]
-  }
+  return storeValues[key] ?? defaults[key]
 }
 
 export function setStore(key, value) {
-  localStorage.setItem(key, JSON.stringify(value))
+  storeValues = { ...storeValues, [key]: value }
   window.dispatchEvent(new CustomEvent('store-update', { detail: { key } }))
 }
 
@@ -94,14 +69,9 @@ export function useStore(key) {
     const refresh = (event) => {
       if (!event.detail || event.detail.key === key) setValue(getStore(key))
     }
-    const refreshStorage = (event) => {
-      if (event.key === key || event.key === null) setValue(getStore(key))
-    }
     window.addEventListener('store-update', refresh)
-    window.addEventListener('storage', refreshStorage)
     return () => {
       window.removeEventListener('store-update', refresh)
-      window.removeEventListener('storage', refreshStorage)
     }
   }, [key])
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import { makeId, money, updateStore, useStore } from '../customer/store'
 import Sidebar from '../../components/Sidebar/Sidebar'
@@ -7,6 +7,7 @@ import { downloadCsv } from '../../utils/csvExport'
 import { useDispatch } from "react-redux";
 import { removeProductFromCart } from '../../redux/cartSlice.js'
 import { removeFromWishlist } from '../../redux/wishlistSlice.js'
+import { fetchProducts } from '../../api/backend.js'
 import {
   addProduct,
   removeProduct as removeProductFromCatalog,
@@ -117,6 +118,10 @@ export function ProductsAdmin({ products, categories }) {
   const [sortDirection, setSortDirection] = useState('asc')
   const [page, setPage] = useState(1)
   const pageSize = 10
+  const [catalog, setCatalog] = useState(null)
+  const [loadError, setLoadError] = useState('')
+  const [reloadVersion, setReloadVersion] = useState(0)
+  const [exporting, setExporting] = useState(false)
   const [error, setError] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [pendingDelete, setPendingDelete] = useState(null)
@@ -125,23 +130,44 @@ export function ProductsAdmin({ products, categories }) {
   const [loadingImage, setLoadingImage] = useState(false)
   const [form, setForm] = useState(null)
   const [imageInputKey, setImageInputKey] = useState(0)
-  const filtered = products.filter((product) => `${product.name} ${product.category}`.toLowerCase().includes(debouncedSearch.toLowerCase()))
-  const sortedProducts = [...filtered].sort((first, second) => {
-    if (sortKey === 'newest') return products.indexOf(first) - products.indexOf(second)
-    const valueFor = (product) => {
-      if (sortKey === 'status') return product.stock === 0 ? 0 : product.stock <= 10 ? 1 : 2
-      return product[sortKey]
+  const orderBy = sortKey === 'newest' ? 'updatedAt' : sortKey === 'status' ? 'stock' : sortKey
+  const order = sortDirection
+  const requestKey = JSON.stringify([page, pageSize, debouncedSearch, orderBy, order, reloadVersion])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchProducts({
+      page,
+      limit: pageSize,
+      q: debouncedSearch.trim(),
+      orderBy,
+      order,
+    }, { signal: controller.signal }).then((result) => {
+      if (controller.signal.aborted) return
+      setCatalog({ ...result, requestKey })
+      setLoadError('')
+      setPage(result.page)
+    }).catch((requestError) => {
+      if (!controller.signal.aborted) setLoadError(requestError.message)
+    })
+    return () => controller.abort()
+  }, [page, pageSize, debouncedSearch, orderBy, order, requestKey])
+
+  useEffect(() => {
+    const handleStoreSaved = (event) => {
+      if (event.detail?.key === 'products') setReloadVersion((version) => version + 1)
     }
-    const firstValue = valueFor(first)
-    const secondValue = valueFor(second)
-    const comparison = typeof firstValue === 'number'
-      ? firstValue - secondValue
-      : String(firstValue ?? '').localeCompare(String(secondValue ?? ''), undefined, { sensitivity: 'base' })
-    return sortDirection === 'asc' ? comparison : -comparison
-  })
-  const pageCount = Math.ceil(sortedProducts.length / pageSize)
-  const currentPage = Math.min(page, Math.max(pageCount, 1))
-  const pageProducts = sortedProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+    window.addEventListener('store-saved', handleStoreSaved)
+    return () => window.removeEventListener('store-saved', handleStoreSaved)
+  }, [])
+
+  const hasCurrentCatalog = catalog?.requestKey === requestKey
+  const filtered = hasCurrentCatalog ? catalog.items : []
+  const sortedProducts = filtered
+  const pageProducts = filtered
+  const pageCount = hasCurrentCatalog ? catalog.totalPages : 0
+  const currentPage = hasCurrentCatalog ? catalog.page : page
+  const totalProducts = hasCurrentCatalog ? catalog.total : 0
   const pageNumbers = Array.from(
     { length: Math.min(5, pageCount) },
     (_, index) => Math.max(1, Math.min(currentPage - 2, pageCount - 4)) + index,
@@ -152,18 +178,46 @@ export function ProductsAdmin({ products, categories }) {
     setPage(1)
   }
   const sortIndicator = (key) => sortKey === key ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'
-  const exportProducts = () => downloadCsv(
-    'products.csv',
-    ['Product ID', 'Product Name', 'Category', 'Price', 'Stock', 'Status'],
-    sortedProducts.map((product) => [
-      product.id,
-      product.name,
-      product.category,
-      product.price,
-      product.stock,
-      product.stock === 0 ? 'Out of stock' : product.stock <= 10 ? 'Low stock' : 'In stock',
-    ]),
-  )
+  const exportProducts = async () => {
+    setExporting(true)
+    setLoadError('')
+    try {
+      const firstPage = await fetchProducts({
+        page: 1,
+        limit: 100,
+        q: debouncedSearch.trim(),
+        orderBy,
+        order,
+      })
+      const allProducts = [...firstPage.items]
+      for (let exportPage = 2; exportPage <= firstPage.totalPages; exportPage += 1) {
+        const result = await fetchProducts({
+          page: exportPage,
+          limit: 100,
+          q: debouncedSearch.trim(),
+          orderBy,
+          order,
+        })
+        allProducts.push(...result.items)
+      }
+      downloadCsv(
+        'products.csv',
+        ['Product ID', 'Product Name', 'Category', 'Price', 'Stock', 'Status'],
+        allProducts.map((product) => [
+          product.id,
+          product.name,
+          product.category,
+          product.price,
+          product.stock,
+          product.stock === 0 ? 'Out of stock' : product.stock <= 10 ? 'Low stock' : 'In stock',
+        ]),
+      )
+    } catch (exportError) {
+      setLoadError(`Could not export products: ${exportError.message}`)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const resetForm = () => {
     setEditing(null)
@@ -204,6 +258,7 @@ export function ProductsAdmin({ products, categories }) {
       dispatch(removeProductFromCatalog(pendingDelete.id))
       dispatch(removeProductFromCart(pendingDelete.id));
       dispatch(removeFromWishlist(pendingDelete.id));
+      updateStore('products', (all) => all.filter((product) => product.id !== pendingDelete.id));
       setPendingDelete(null)
     } catch (removeError) {
       setDeleteError(`Could not remove this product: ${removeError.message}`)
@@ -247,8 +302,17 @@ export function ProductsAdmin({ products, categories }) {
     }
     setSaving(true)
     try {
+      const now = new Date().toISOString()
       if (editing) {
-        dispatch(updateProduct({ id: editing, ...productValues }))
+        const existing = products.find((p) => p.id === editing)
+        const updated = {
+          ...existing,
+          ...productValues,
+          id: editing,
+          updatedAt: now,
+        }
+        dispatch(updateProduct(updated))
+        updateStore('products', (all) => all.map((product) => product.id === editing ? updated : product))
       } else {
         const nextId = products.reduce((highestId, product) => {
           const match = /^p-(\d+)$/.exec(product.id)
@@ -270,8 +334,14 @@ export function ProductsAdmin({ products, categories }) {
           color: 'sand',
           ...(productValues.image ? { image: productValues.image } : {}),
           description: productValues.description,
+          createdAt: now,
+          updatedAt: now,
         }
         dispatch(addProduct(newProduct))
+        updateStore('products', (all) => [
+          newProduct,
+          ...all.filter((product) => product.id !== newProduct.id),
+        ])
       }
       resetForm()
     } catch (saveError) {
@@ -320,7 +390,8 @@ export function ProductsAdmin({ products, categories }) {
       ? <div className="admin-order-confirm-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) resetForm() }}>{productForm}</div>
       : productForm)}
     <section className="admin-panel admin-data-panel">
-      <div className="table-toolbar"><div className="admin-search"><span>⌕</span><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} placeholder="Search products" aria-label="Search products" /></div><div className="admin-toolbar-actions"><span>{filtered.length} products</span><button type="button" className="csv-export-button" onClick={exportProducts}>Export CSV</button></div></div>
+      <div className="table-toolbar"><div className="admin-search"><span>⌕</span><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} placeholder="Search products" aria-label="Search products" /></div><div className="admin-toolbar-actions"><span>{totalProducts} products</span><button type="button" className="csv-export-button" onClick={exportProducts} disabled={exporting}>{exporting ? 'Exporting…' : 'Export CSV'}</button></div></div>
+      {loadError && <p className="form-error" role="alert">{loadError}</p>}
       <div className="admin-table-wrap"><table>
         <thead><tr>
           <th><button className="admin-sort-button" type="button" onClick={() => sortBy('name')}>PRODUCT <span aria-hidden="true">{sortIndicator('name')}</span></button></th>
@@ -336,7 +407,7 @@ export function ProductsAdmin({ products, categories }) {
           <td><span className={`inventory-tag ${product.stock === 0 ? 'out' : product.stock <= 10 ? 'low' : ''}`}><i />{product.stock === 0 ? 'Sold out' : product.stock <= 10 ? 'Low stock' : 'In stock'}</span></td>
           <td><button type="button" className="table-action edit-action" onClick={() => editProduct(product)}>Edit</button><button type="button" className="table-action delete-action" onClick={() => removeProduct(product.id)}>Delete</button></td>
         </tr>)}</tbody>
-      </table>{!filtered.length && <div className="admin-blank"><p>No products match that search.</p></div>}</div>
+      </table>{!hasCurrentCatalog && !loadError && <div className="admin-blank"><p>Loading products…</p></div>}{hasCurrentCatalog && !pageProducts.length && <div className="admin-blank"><p>No products match that search.</p></div>}</div>
       {pageCount > 1 && <nav className="admin-pagination" aria-label="Product table pages">
         <button type="button" onClick={() => setPage(currentPage - 1)} disabled={currentPage === 1}>Previous</button>
         {pageNumbers.map((pageNumber) => <button key={pageNumber} type="button" className={pageNumber === currentPage ? 'active' : ''} aria-current={pageNumber === currentPage ? 'page' : undefined} onClick={() => setPage(pageNumber)}>{pageNumber}</button>)}
@@ -459,6 +530,7 @@ export function InventoryAdmin({ products }) {
     const stock = Number(value)
     if (!Number.isInteger(stock) || stock < 0) return
     dispatch(updateProductStock({ id, stock }))
+    updateStore('products', (all) => all.map((item) => item.id === id ? { ...item, stock } : item))
   }
   const filtered = products.filter((product) => `${product.name} ${product.category}`.toLowerCase().includes(debouncedSearch.toLowerCase()))
   const sortedProducts = [...filtered].sort((first, second) => {

@@ -6,16 +6,22 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
-import { ProductsService } from './products.service.js';
+import { ProductsService, type ProductListQuery } from './products.service.js';
 
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  findAll() {
-    return this.productsService.findAll();
+  findAll(@Query() query: ProductListQuery) {
+    return this.productsService.findAll(query);
+  }
+
+  @Get('search')
+  search(@Query() query: ProductListQuery) {
+    return this.productsService.findAll(query);
   }
 
   @Get(':id')
