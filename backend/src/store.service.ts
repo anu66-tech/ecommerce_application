@@ -8,12 +8,14 @@ import { PrismaService } from './prisma/prisma.service.js';
 export const STORE_KEYS = [
   'users',
   'currentUser',
+  'currentAdmin',
   'products',
   'categories',
   'cart',
   'wishlist',
   'orders',
   'checkoutDraft',
+  'newsletter',
 ] as const;
 
 export type StoreKey = (typeof STORE_KEYS)[number];
@@ -22,12 +24,14 @@ export type AppStore = Record<StoreKey, unknown>;
 const emptyStore: AppStore = {
   users: [],
   currentUser: null,
+  currentAdmin: null,
   products: [],
   categories: [],
   cart: [],
   wishlist: [],
   orders: [],
   checkoutDraft: {},
+  newsletter: [],
 };
 
 type JsonObject = Record<string, unknown>;

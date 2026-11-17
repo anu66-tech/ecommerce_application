@@ -154,9 +154,22 @@
 
 .table-action { padding: 4px 6px; border: 0; background: transparent; color: #70766a; font-size: 8px; cursor: pointer; }
 
+.edit-action { color: #374334; font-weight: 500; }
+
 .delete-action { color: #a3645e; }
 
 .table-action:hover { text-decoration: underline; }
+
+.metric-card-interactive { text-decoration: none; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
+.metric-card-interactive:hover { border-color: #374334; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); transform: translateY(-2px); }
+.metric-link-indicator { opacity: 0; transform: translateX(-3px); transition: opacity 0.15s ease, transform 0.15s ease; }
+.metric-card-interactive:hover .metric-link-indicator { opacity: 1; transform: translateX(0); }
+
+.overview-title-link { color: inherit; text-decoration: none; transition: color 0.15s ease; }
+.overview-title-link:hover { color: #374334; text-decoration: underline; }
+
+.category-icon-badge { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 4px; background: #f2f0e6; font-size: 15px; color: #374334; flex-shrink: 0; }
+.category-admin-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 
 .admin-add-form { margin-bottom: 15px; padding-bottom: 17px; border: 1px solid #ecebe5; background: #fffefa; }
 

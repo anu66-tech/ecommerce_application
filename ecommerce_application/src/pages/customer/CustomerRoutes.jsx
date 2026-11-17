@@ -1,8 +1,22 @@
+import { useState, useEffect } from 'react'
+import { useDispatch } from 'react-redux'
 import { useOutletContext, useParams, useSearchParams } from 'react-router-dom'
+import {
+  fetchProductByIdApi,
+  fetchProducts,
+  fetchCategoriesApi,
+  fetchWishlistApi,
+  fetchCartApi,
+  fetchOrdersApi,
+} from '../../api/backend.js'
+import { replaceCart } from '../../redux/cartSlice.js'
+import { replaceWishlist } from '../../redux/wishlistSlice.js'
+import { replaceProducts } from '../../redux/ProductSlice.js'
+import { updateStore } from './store.js'
+import HomePage from './Home.jsx'
 import {
   CartPage,
   CheckoutPage,
-  HomePage,
   OrderSuccess,
   OrdersPage,
   ProductDetail,
@@ -12,8 +26,32 @@ import {
 
 export function CustomerHomeRoute() {
   const { products, categories, wishlist, onWish, onAdd, onBuyNow } = useOutletContext()
+  const dispatch = useDispatch()
   const [searchParams] = useSearchParams()
   const category = searchParams.get('category')
+
+  useEffect(() => {
+    if (products && products.length > 0) return
+    let active = true
+    const controller = new AbortController()
+    fetchProducts({ limit: 50 }, { signal: controller.signal })
+      .then((res) => {
+        if (!active || controller.signal.aborted) return
+        const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : null
+        if (items) dispatch(replaceProducts(items))
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError' && !controller.signal.aborted) {
+          console.warn('Home products API error:', err)
+        }
+      })
+
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [dispatch, products])
+
   const visibleProducts = category ? products.filter((product) => product.category === category) : products
   return <HomePage products={visibleProducts} categories={categories} wishlist={wishlist} onWish={onWish} onAdd={onAdd} onBuyNow={onBuyNow} />
 }
@@ -21,6 +59,7 @@ export function CustomerHomeRoute() {
 export function CustomerProductsRoute() {
   const { products, categories, wishlist, onWish, onAdd, onBuyNow } = useOutletContext()
   const [searchParams] = useSearchParams()
+
   return (
     <ProductsPage
       products={products}
@@ -45,17 +84,85 @@ export function CustomerProductsRoute() {
 export function CustomerProductRoute() {
   const { id } = useParams()
   const { products, wishlist, onWish, onAdd, onBuyNow } = useOutletContext()
-  const product = products.find((item) => item.id === id)
+  const [remoteProduct, setRemoteProduct] = useState(null)
+
+  useEffect(() => {
+    let active = true
+    const controller = new AbortController()
+    fetchProductByIdApi(id, { signal: controller.signal })
+      .then((res) => {
+        if (active && !controller.signal.aborted && res) setRemoteProduct(res)
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError' && !controller.signal.aborted) {
+          console.warn('Product by ID fetch warning:', err)
+        }
+      })
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [id])
+
+  const product = remoteProduct || products.find((item) => item.id === id)
   return <ProductDetail product={product} wishlist={wishlist} onWish={onWish} onAdd={onAdd} onBuyNow={onBuyNow} />
 }
 
 export function CustomerWishlistRoute() {
   const { products, wishlist, onWish, onAdd, onBuyNow } = useOutletContext()
+  const dispatch = useDispatch()
+
+  useEffect(() => {
+    let active = true
+    const controller = new AbortController()
+    fetchWishlistApi({ signal: controller.signal })
+      .then((res) => {
+        if (!active || controller.signal.aborted) return
+        const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : []
+        if (JSON.stringify(items) !== JSON.stringify(wishlist)) {
+          dispatch(replaceWishlist(items))
+        }
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError' && !controller.signal.aborted) {
+          console.warn('Wishlist API error:', err)
+        }
+      })
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [dispatch])
+
   return <WishlistPage products={products} wishlist={wishlist} onWish={onWish} onAdd={onAdd} onBuyNow={onBuyNow} />
 }
 
 export function CustomerCartRoute() {
   const { products, cart, onQuantity, onRemove } = useOutletContext()
+  const dispatch = useDispatch()
+
+  useEffect(() => {
+    let active = true
+    const controller = new AbortController()
+    fetchCartApi({ signal: controller.signal })
+      .then((res) => {
+        if (!active || controller.signal.aborted) return
+        const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : []
+        if (JSON.stringify(items) !== JSON.stringify(cart)) {
+          dispatch(replaceCart(items))
+        }
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError' && !controller.signal.aborted) {
+          console.warn('Cart API error:', err)
+        }
+      })
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [dispatch])
+
   return <CartPage products={products} cart={cart} onQuantity={onQuantity} onRemove={onRemove} />
 }
 
@@ -69,4 +176,16 @@ export function CustomerOrdersRoute() {
   return <OrdersPage orders={orders} />
 }
 
+import LoginPage from './LoginPage'
+
+export function CustomerLoginRoute() {
+  return <LoginPage />
+}
+
 export { OrderSuccess as CustomerOrderSuccessRoute }
+
+import AccountPage from './AccountPage'
+
+export function CustomerAccountRoute() {
+  return <AccountPage />
+}

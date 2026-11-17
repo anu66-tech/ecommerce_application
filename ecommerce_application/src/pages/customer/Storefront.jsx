@@ -1,6 +1,22 @@
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect, useMemo, useState } from "react";
-import { checkBackendHealth, fetchProducts } from "../../api/backend.js";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  checkBackendHealth,
+  subscribeNewsletterApi,
+  fetchProducts,
+  fetchCategoriesApi,
+  fetchOrdersApi,
+  fetchOrderByIdApi,
+  createOrderApi,
+  fetchCartApi,
+  addToCartApi,
+  removeFromCartApi,
+  updateCartQuantityApi,
+  clearCartApi,
+  fetchWishlistApi,
+  addToWishlistApi,
+  removeFromWishlistApi,
+} from "../../api/backend.js";
 import {
   addToCart,
   clearCart,
@@ -34,6 +50,9 @@ import {
 } from "./store";
 import Sidebar from "../../components/Sidebar/Sidebar";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
+import Icon from "../../components/common/Icon.jsx";
+
+export { Icon };
 
 const steps = [
   ["address", "Address"],
@@ -51,61 +70,10 @@ function checkoutUrl(productId, quantity = 1, fromCart = false) {
   return `/checkout/address?${params.toString()}`;
 }
 
-function Icon({ name, size = 20 }) {
-  const paths = {
-    bag: (
-      <>
-        <path d="M5 8h14l1 13H4L5 8Z" />
-        <path d="M9 8a3 3 0 0 1 6 0" />
-      </>
-    ),
-    heart: (
-      <path d="M20.8 8.7c0 4.2-8.8 10-8.8 10s-8.8-5.8-8.8-10A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.8 2.2Z" />
-    ),
-    search: (
-      <>
-        <circle cx="10.8" cy="10.8" r="6.8" />
-        <path d="m16 16 4 4" />
-      </>
-    ),
-    user: (
-      <>
-        <circle cx="12" cy="8" r="3.5" />
-        <path d="M5 20c.4-3.2 3-5 7-5s6.6 1.8 7 5" />
-      </>
-    ),
-    arrow: (
-      <>
-        <path d="M5 12h14" />
-        <path d="m13 6 6 6-6 6" />
-      </>
-    ),
-    check: <path d="m5 12 4 4L19 6" />,
-    close: (
-      <>
-        <path d="m6 6 12 12" />
-        <path d="M18 6 6 18" />
-      </>
-    ),
-  };
-  return (
-    <svg
-      aria-hidden="true"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      {paths[name]}
-    </svg>
-  );
-}
+
 
 function Header({ count, wishlistCount, onAccount }) {
+  const currentUser = useStore("currentUser");
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [backendStatus, setBackendStatus] = useState("connecting");
@@ -128,7 +96,7 @@ function Header({ count, wishlistCount, onAccount }) {
       });
     return () => controller.abort();
   }, []);
-
+  
   useEffect(() => {
     if (!shouldSearch || search !== debouncedSearch) return;
     const query = debouncedSearch.trim();
@@ -144,7 +112,7 @@ function Header({ count, wishlistCount, onAccount }) {
         A little something extra — free shipping on orders over ₹4,999
       </div>
       <header className="site-header">
-        <Link className="brand" to="/">
+        <Link className="brand" to="/home">
           goodthings<span>.</span>
         </Link>
         <Form className="header-search" action="/products" method="get">
@@ -187,20 +155,23 @@ function Header({ count, wishlistCount, onAccount }) {
           <Link className="header-text-link" to="/cart">
             Cart{count > 0 && <span>{count}</span>}
           </Link>
-          <button
-            className="icon-link"
-            onClick={onAccount}
-            aria-label="Your account"
+          <Link
+            className="header-text-link header-user-link"
+            to={currentUser ? "/account" : "/login"}
+            aria-label={currentUser ? `Account: ${currentUser.name}` : "Sign In"}
+            title={currentUser ? `Signed in as ${currentUser.name} - View Account Details` : "Sign In"}
+            style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}
           >
-            <Icon name="user" />
-          </button>
+            <Icon name="user" size={16} />
+            <span>{currentUser ? currentUser.name.split(" ")[0] : "Sign In"}</span>
+          </Link>
         </div>
       </header>
     </>
   );
 }
 
-function ProductCard({ product, wished, onWish, onAdd, onBuyNow }) {
+export function ProductCard({ product, wished, onWish, onAdd, onBuyNow }) {
   return (
     <article className="product-card">
       <div className={`product-photo photo-${product.color}`}>
@@ -258,7 +229,7 @@ function ProductCard({ product, wished, onWish, onAdd, onBuyNow }) {
   );
 }
 
-function ProductGrid({ products, wishlist, onWish, onAdd, onBuyNow }) {
+export function ProductGrid({ products, wishlist, onWish, onAdd, onBuyNow }) {
   if (!products.length)
     return (
       <div className="empty-state">
@@ -290,13 +261,10 @@ function Footer() {
   return (
     <footer className="site-footer">
       <div className="footer-top">
-        <Link className="brand" to="/">
+        <Link className="brand" to="/home">
           goodthings<span>.</span>
         </Link>
         <p>Thoughtful things for everyday living.</p>
-        <Link to="/admin/login">
-          Store admin <span>↗</span>
-        </Link>
       </div>
       <div className="footer-bottom">
         <span>© 2026 goodthings studio</span>
@@ -311,16 +279,60 @@ function CustomerLogin({ onClose, onSave }) {
   const [name, setName] = useState(currentUser?.name ?? "");
   const [email, setEmail] = useState(currentUser?.email ?? "");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const handleNameChange = (event) => {
+    setName(event.target.value);
+    if (fieldErrors.name) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.name;
+        return next;
+      });
+    }
+    if (error) setError("");
+  };
+
+  const handleEmailChange = (event) => {
+    setEmail(event.target.value);
+    if (fieldErrors.email) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.email;
+        return next;
+      });
+    }
+    if (error) setError("");
+  };
+
   const submit = (event) => {
     event.preventDefault();
-    if (!name.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Add your name and a valid email address to continue.");
+    const newErrors = {};
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName) {
+      newErrors.name = "Your name is required.";
+    } else if (trimmedName.length < 2) {
+      newErrors.name = "Name must be at least 2 characters.";
+    }
+
+    if (!trimmedEmail) {
+      newErrors.email = "Email address is required.";
+    } else if (!/^[^s@]+@[^s@]+\.[^s@]+$/.test(trimmedEmail)) {
+      newErrors.email = "Please enter a valid email address.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      setError("Please fix the highlighted fields to continue.");
       return;
     }
+
     const users = getStore("users") ?? [];
     const user = users.find(
-      (item) => item.email.toLowerCase() === email.trim().toLowerCase(),
-    ) ?? { id: makeId("user"), name: name.trim(), email: email.trim() };
+      (item) => item.email.toLowerCase() === trimmedEmail.toLowerCase(),
+    ) ?? { id: makeId("user"), name: trimmedName, email: trimmedEmail, role: "customer" };
     setStore(
       "users",
       users.some((item) => item.id === user.id) ? users : [...users, user],
@@ -340,25 +352,31 @@ function CustomerLogin({ onClose, onSave }) {
         <span className="eyebrow">A GOOD PLACE TO START</span>
         <h2>Welcome to goodthings.</h2>
         <p>Save your details and keep track of your orders.</p>
-        <form onSubmit={submit}>
+        <form onSubmit={submit} noValidate>
           <label>
             Your name
             <input
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={handleNameChange}
               autoComplete="name"
-              required
+              className={fieldErrors.name ? "input-error" : ""}
             />
+            {fieldErrors.name && (
+              <span className="field-error-text">{fieldErrors.name}</span>
+            )}
           </label>
           <label>
             Email address
             <input
               type="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={handleEmailChange}
               autoComplete="email"
-              required
+              className={fieldErrors.email ? "input-error" : ""}
             />
+            {fieldErrors.email && (
+              <span className="field-error-text">{fieldErrors.email}</span>
+            )}
           </label>
           {error && <p className="form-error">{error}</p>}
           <button className="button button-dark" type="submit">
@@ -419,182 +437,297 @@ function ConfirmationDialog({ title, description, confirmLabel, onCancel, onConf
   );
 }
 
-function HomeProductSection({
-  eyebrow,
-  title,
-  products,
-  wishlist,
-  onWish,
-  onAdd,
-  onBuyNow,
-}) {
+function AddToBagDialog({ product, cartQuantity, onCancel, onConfirm }) {
+  const availableStock = Math.max(0, (product.stock || 0) - cartQuantity);
+  const [quantity, setQuantity] = useState(1);
+
   return (
-    <section className="section-block home-products">
-      <div className="section-heading">
-        <div>
-          <span className="eyebrow">{eyebrow}</span>
-          <h2>{title}</h2>
+    <div
+      className="confirmation-dialog-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onCancel();
+      }}
+    >
+      <section
+        className="confirmation-dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="add-bag-title"
+        aria-describedby="add-bag-desc"
+        onKeyDown={(event) => {
+          if (event.key === "Escape") onCancel();
+        }}
+        style={{ width: "min(460px, 100%)" }}
+      >
+        <span className="eyebrow">CONFIRM SELECTION</span>
+        <h2 id="add-bag-title">Add to Bag?</h2>
+        <p id="add-bag-desc" style={{ marginBottom: "1rem" }}>
+          Please confirm you would like to add this item to your shopping bag.
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "1rem",
+            padding: "0.85rem",
+            background: "#f9f8f4",
+            borderRadius: "6px",
+            alignItems: "center",
+            marginBottom: "1rem",
+          }}
+        >
+          {product.image && (
+            <img
+              src={product.image}
+              alt=""
+              style={{
+                width: "70px",
+                height: "70px",
+                objectFit: "cover",
+                borderRadius: "4px",
+                border: "1px solid #e7e5dc",
+              }}
+            />
+          )}
+          <div style={{ flex: 1 }}>
+            <h3 style={{ margin: "0 0 0.2rem", fontSize: "1rem", color: "#252b22" }}>
+              {product.name}
+            </h3>
+            <span style={{ fontSize: "0.8rem", color: "#777", display: "block" }}>
+              {product.brand} · {product.category}
+            </span>
+            <strong style={{ fontSize: "0.95rem", color: "#384633" }}>
+              {money(product.price)}
+            </strong>
+          </div>
         </div>
-        <Link className="text-link" to="/products">
-          Shop all <Icon name="arrow" size={16} />
-        </Link>
-      </div>
-      <ProductGrid
-        products={products.slice(0, 4)}
-        wishlist={wishlist}
-        onWish={onWish}
-        onAdd={onAdd}
-        onBuyNow={onBuyNow}
-      />
-    </section>
+
+        {availableStock > 0 ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "1.25rem",
+              padding: "0.5rem 0.85rem",
+              border: "1px solid #e7e5dc",
+              borderRadius: "4px",
+            }}
+          >
+            <div>
+              <span style={{ fontSize: "0.85rem", fontWeight: 600, display: "block" }}>Quantity</span>
+              <small style={{ color: availableStock <= 5 ? "#b83232" : "#2e6f40", fontSize: "0.75rem" }}>
+                {availableStock} available in stock
+              </small>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <button
+                type="button"
+                className="button button-light"
+                style={{ minHeight: "32px", padding: "0 10px", fontSize: "14px" }}
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                disabled={quantity <= 1}
+                aria-label="Decrease quantity"
+              >
+                −
+              </button>
+              <span style={{ minWidth: "24px", textAlign: "center", fontWeight: 600, fontSize: "0.95rem" }}>
+                {quantity}
+              </span>
+              <button
+                type="button"
+                className="button button-light"
+                style={{ minHeight: "32px", padding: "0 10px", fontSize: "14px" }}
+                onClick={() => setQuantity((q) => Math.min(availableStock, q + 1))}
+                disabled={quantity >= availableStock}
+                aria-label="Increase quantity"
+              >
+                +
+              </button>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <small style={{ display: "block", color: "#777", fontSize: "0.75rem" }}>Total</small>
+              <strong style={{ fontSize: "0.95rem", color: "#384633" }}>
+                {money(product.price * quantity)}
+              </strong>
+            </div>
+          </div>
+        ) : (
+          <p style={{ color: "#b83232", fontSize: "0.85rem", margin: "1rem 0" }}>
+            You already have all available units of this item in your shopping bag.
+          </p>
+        )}
+
+        <div className="confirmation-dialog-actions">
+          <button
+            type="button"
+            className="button button-light"
+            autoFocus
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="button button-dark"
+            disabled={availableStock <= 0}
+            onClick={() => onConfirm(quantity)}
+          >
+            Confirm & Add to Bag
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 
-export function HomePage({ products, categories, wishlist, onWish, onAdd, onBuyNow }) {
-  const featured = products.filter((product) => product.featured);
-  const bestSellers = [...products]
-    .filter((product) => product.bestSeller)
-    .sort((a, b) => b.reviews - a.reviews);
-  const discounted = products.filter(
-    (product) => product.oldPrice && product.oldPrice > product.price,
+function BuyNowDialog({ product, initialQuantity = 1, onCancel, onConfirm }) {
+  const availableStock = Math.max(0, product.stock || 0);
+  const [quantity, setQuantity] = useState(() =>
+    Math.max(1, Math.min(Number(initialQuantity) || 1, availableStock || 1))
   );
+
   return (
-    <>
-      <section className="home-hero">
-        <div className="hero-copy">
-          <span className="eyebrow">THE GOODTHINGS EVERYDAY EDIT</span>
-          <h1>
-            Find your next
-            <br />
-            <em>favorite thing.</em>
-          </h1>
-          <p>Thoughtful picks for everyday living, all in one happy place.</p>
-          <Link className="button button-dark" to="/products">
-            Shop now <Icon name="arrow" size={17} />
-          </Link>
-          <div className="hero-note">
-            <span className="note-stars">★★★★★</span>
-            <span>Loved by 2,400+ happy homes</span>
-          </div>
-        </div>
-        <div className="hero-image">
-          <img
-            src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1400&q=90"
-            alt="A warm, sunlit home with thoughtfully chosen everyday things"
-          />
-          <div className="hero-image-label">
-            <span>GOOD THINGS, EVERY DAY</span>
-            <b>A little joy goes a long way.</b>
-          </div>
-          <span className="hero-stamp">
-            made
-            <br />
-            with care
-          </span>
-        </div>
-      </section>
-      <section className="trust-strip">
-        <span>
-          <b>✳</b> Thoughtfully sourced
-        </span>
-        <span>
-          <b>✳</b> Made to be kept
-        </span>
-        <span>
-          <b>✳</b> Packed with care
-        </span>
-        <span>
-          <b>✳</b> Free shipping over ₹4,999
-        </span>
-      </section>
-      <section className="home-categories">
-        <div className="section-heading">
-          <div>
-            <span className="eyebrow">A LITTLE BIT OF EVERYTHING</span>
-            <h2>Shop by category.</h2>
-          </div>
-        </div>
-        <div className="category-grid">
-          {categories
-            .filter((category) =>
-              [
-                "Electronics",
-                "Fashion",
-                "Footwear",
-                "Beauty",
-                "Home",
-                "Accessories",
-              ].includes(category.name),
-            )
-            .map((category) => (
-              <Link
-                className="category-tile"
-                key={category.id}
-                to={`/products?category=${encodeURIComponent(category.name)}`}
-              >
-                <span>{category.icon || "✳"}</span>
-                <b>{category.name}</b>
-                <small>Explore collection →</small>
-              </Link>
-            ))}
-        </div>
-      </section>
-      <HomeProductSection
-        eyebrow="HANDPICKED FOR YOU"
-        title="Featured products."
-        products={products}
-        wishlist={wishlist}
-        onWish={onWish}
-        onAdd={onAdd}
-        onBuyNow={onBuyNow}
-      />
-      <HomeProductSection
-        eyebrow="THE CROWD FAVORITES"
-        title="Best sellers."
-        products={
-          bestSellers.length
-            ? bestSellers
-            : [...products].sort((a, b) => b.reviews - a.reviews)
-        }
-        wishlist={wishlist}
-        onWish={onWish}
-        onAdd={onAdd}
-        onBuyNow={onBuyNow}
-      />
-      <HomeProductSection
-        eyebrow="A LITTLE SOMETHING OFF"
-        title="Discounts worth a look."
-        products={discounted}
-        wishlist={wishlist}
-        onWish={onWish}
-        onAdd={onAdd}
-        onBuyNow={onBuyNow}
-      />
-      <section className="newsletter">
-        <span className="eyebrow">A NOTE FROM US, NOW AND THEN</span>
-        <h2>A little good in your inbox.</h2>
-        <p>New finds, slow-living notes, and 10% off your first order.</p>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            window.alert("You’re on the list — talk soon!");
+    <div
+      className="confirmation-dialog-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onCancel();
+      }}
+    >
+      <section
+        className="confirmation-dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="buy-now-title"
+        aria-describedby="buy-now-desc"
+        onKeyDown={(event) => {
+          if (event.key === "Escape") onCancel();
+        }}
+        style={{ width: "min(460px, 100%)" }}
+      >
+        <span className="eyebrow">EXPRESS CHECKOUT</span>
+        <h2 id="buy-now-title">Buy Now?</h2>
+        <p id="buy-now-desc" style={{ marginBottom: "1rem" }}>
+          Please confirm you would like to proceed directly to checkout with this item.
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "1rem",
+            padding: "0.85rem",
+            background: "#f9f8f4",
+            borderRadius: "6px",
+            alignItems: "center",
+            marginBottom: "1rem",
           }}
         >
-          <input
-            type="email"
-            placeholder="Your email address"
-            aria-label="Your email address"
-            required
-          />
-          <button type="submit">
-            Count me in <Icon name="arrow" size={16} />
+          {product.image && (
+            <img
+              src={product.image}
+              alt=""
+              style={{
+                width: "70px",
+                height: "70px",
+                objectFit: "cover",
+                borderRadius: "4px",
+                border: "1px solid #e7e5dc",
+              }}
+            />
+          )}
+          <div style={{ flex: 1 }}>
+            <h3 style={{ margin: "0 0 0.2rem", fontSize: "1rem", color: "#252b22" }}>
+              {product.name}
+            </h3>
+            <span style={{ fontSize: "0.8rem", color: "#777", display: "block" }}>
+              {product.brand} · {product.category}
+            </span>
+            <strong style={{ fontSize: "0.95rem", color: "#384633" }}>
+              {money(product.price)}
+            </strong>
+          </div>
+        </div>
+
+        {availableStock > 0 ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "1.25rem",
+              padding: "0.5rem 0.85rem",
+              border: "1px solid #e7e5dc",
+              borderRadius: "4px",
+            }}
+          >
+            <div>
+              <span style={{ fontSize: "0.85rem", fontWeight: 600, display: "block" }}>Quantity</span>
+              <small style={{ color: availableStock <= 5 ? "#b83232" : "#2e6f40", fontSize: "0.75rem" }}>
+                {availableStock} available in stock
+              </small>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <button
+                type="button"
+                className="button button-light"
+                style={{ minHeight: "32px", padding: "0 10px", fontSize: "14px" }}
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                disabled={quantity <= 1}
+                aria-label="Decrease quantity"
+              >
+                −
+              </button>
+              <span style={{ minWidth: "24px", textAlign: "center", fontWeight: 600, fontSize: "0.95rem" }}>
+                {quantity}
+              </span>
+              <button
+                type="button"
+                className="button button-light"
+                style={{ minHeight: "32px", padding: "0 10px", fontSize: "14px" }}
+                onClick={() => setQuantity((q) => Math.min(availableStock, q + 1))}
+                disabled={quantity >= availableStock}
+                aria-label="Increase quantity"
+              >
+                +
+              </button>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <small style={{ display: "block", color: "#777", fontSize: "0.75rem" }}>Total</small>
+              <strong style={{ fontSize: "0.95rem", color: "#384633" }}>
+                {money(product.price * quantity)}
+              </strong>
+            </div>
+          </div>
+        ) : (
+          <p style={{ color: "#b83232", fontSize: "0.85rem", margin: "1rem 0" }}>
+            This product is currently out of stock.
+          </p>
+        )}
+
+        <div className="confirmation-dialog-actions">
+          <button
+            type="button"
+            className="button button-light"
+            autoFocus
+            onClick={onCancel}
+          >
+            Cancel
           </button>
-        </form>
-        <span className="newsletter-note">No noise. Just the good stuff.</span>
+          <button
+            type="button"
+            className="button button-dark"
+            disabled={availableStock <= 0}
+            onClick={() => onConfirm(quantity)}
+          >
+            Confirm & Checkout · {money(product.price * Math.min(quantity, availableStock || 1))}
+          </button>
+        </div>
       </section>
-    </>
+    </div>
   );
 }
+
+export { HomePage, HomeProductSection, NewsletterSection } from "./Home.jsx";
 
 export function ProductsPage({
   products,
@@ -711,35 +844,43 @@ export function ProductsPage({
     ],
   );
   const requestKey = JSON.stringify(productQuery);
+  const lastRequestKeyRef = useRef('');
+
   useEffect(() => {
+    if (lastRequestKeyRef.current === requestKey) {
+      return;
+    }
+    lastRequestKeyRef.current = requestKey;
+
     const controller = new AbortController();
     fetchProducts(productQuery, { signal: controller.signal })
       .then((result) => {
         if (controller.signal.aborted) return;
         setCatalog({ ...result, requestKey });
         setLoadError(null);
-        setPage(result.page);
-        setSearchParams((params) => {
-          if (result.page === 1) params.delete("page");
-          else params.set("page", String(result.page));
-          return params;
-        });
+        if (result.page !== page) {
+          setPage(result.page);
+        }
       })
       .catch((error) => {
-        if (!controller.signal.aborted) {
+        if (error.name !== 'AbortError' && !controller.signal.aborted) {
           setLoadError({ requestKey, message: error.message });
         }
       });
 
     return () => controller.abort();
-  }, [productQuery, requestKey, setSearchParams]);
+  }, [requestKey]);
+
   useEffect(() => {
     const query = debouncedSearch.trim();
-    setSearchParams((params) => {
-      const queryChanged =
-        (params.get("q") ?? "") !== query || (!query && params.has("q"));
-      const sortChanged = (params.get("sort") ?? "featured") !== sort;
+    const currentQ = searchParams.get("q") ?? "";
+    const currentSort = searchParams.get("sort") ?? "featured";
+    const queryChanged = currentQ !== query;
+    const sortChanged = currentSort !== sort;
 
+    if (!queryChanged && !sortChanged) return;
+
+    setSearchParams((params) => {
       if (query) params.set("q", query);
       else params.delete("q");
       if (sort === "featured") params.delete("sort");
@@ -747,7 +888,7 @@ export function ProductsPage({
       if (queryChanged || sortChanged) params.delete("page");
       return params;
     }, { replace: true });
-  }, [debouncedSearch, sort, setSearchParams]);
+  }, [debouncedSearch, sort, searchParams, setSearchParams]);
   const hasCurrentCatalog = catalog?.requestKey === requestKey;
   const currentError = loadError?.requestKey === requestKey ? loadError.message : "";
   const loading = !hasCurrentCatalog && !currentError;
@@ -1116,6 +1257,8 @@ export function ProductDetail({ product, wishlist, onWish, onAdd, onBuyNow }) {
 
 export function CartPage({ products, cart, onQuantity, onRemove }) {
   const [pendingRemoval, setPendingRemoval] = useState(null);
+  const [pendingBuyNowItem, setPendingBuyNowItem] = useState(null);
+  const [pendingCartCheckout, setPendingCartCheckout] = useState(false);
   const [buyError, setBuyError] = useState("");
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
@@ -1136,8 +1279,8 @@ export function CartPage({ products, cart, onQuantity, onRemove }) {
   const buyNow = (productId, quantity) => {
     const latestProducts = getStore("products") ?? [];
     const latestCart = getStore("cart") ?? [];
-    const product = latestProducts.find((item) => item.id === productId);
-    const cartItem = latestCart.find((item) => item.productId === productId);
+    const product = latestProducts.find((item) => item.id === productId) || products.find((item) => item.id === productId);
+    const cartItem = latestCart.find((item) => item.productId === productId) || cart.find((item) => item.productId === productId);
     const purchaseQuantity = quantity ?? cartItem?.quantity ?? 1;
     if (!product || product.stock <= 0 || product.stock < purchaseQuantity) {
       setBuyError(
@@ -1148,7 +1291,13 @@ export function CartPage({ products, cart, onQuantity, onRemove }) {
       return;
     }
     setBuyError("");
-    navigate(checkoutUrl(productId, purchaseQuantity, true));
+    setPendingBuyNowItem({ product, quantity: purchaseQuantity });
+  };
+  const confirmBuyNow = (quantity) => {
+    if (!pendingBuyNowItem?.product) return;
+    const finalQty = quantity ?? pendingBuyNowItem.quantity ?? 1;
+    navigate(checkoutUrl(pendingBuyNowItem.product.id, finalQty, true));
+    setPendingBuyNowItem(null);
   };
   const subtotal = lines.reduce(
     (sum, { product, quantity }) =>
@@ -1174,6 +1323,10 @@ export function CartPage({ products, cart, onQuantity, onRemove }) {
       return;
     }
     setBuyError("");
+    setPendingCartCheckout(true);
+  };
+  const confirmWholeCartCheckout = () => {
+    setPendingCartCheckout(false);
     navigate("/checkout/address");
   };
   return (
@@ -1412,6 +1565,23 @@ export function CartPage({ products, cart, onQuantity, onRemove }) {
         }}
       />
     )}
+    {pendingBuyNowItem && (
+      <BuyNowDialog
+        product={pendingBuyNowItem.product}
+        initialQuantity={pendingBuyNowItem.quantity}
+        onCancel={() => setPendingBuyNowItem(null)}
+        onConfirm={confirmBuyNow}
+      />
+    )}
+    {pendingCartCheckout && (
+      <ConfirmationDialog
+        title="Proceed to checkout?"
+        description={`Confirm your order for ${lines.length} ${lines.length === 1 ? "item" : "items"} totaling ${money(total)}.`}
+        confirmLabel="Confirm & Checkout"
+        onCancel={() => setPendingCartCheckout(false)}
+        onConfirm={confirmWholeCartCheckout}
+      />
+    )}
     </>
   );
 }
@@ -1539,6 +1709,98 @@ export function CheckoutPage({ products, cart }) {
   );
   const [draft, setDraft] = useState(() => getStore("checkoutDraft") ?? {});
   const [error, setError] = useState("");
+  const [checkoutErrors, setCheckoutErrors] = useState({});
+
+  const updateDraft = (field, value) => {
+    setDraft((prev) => ({ ...prev, [field]: value }));
+    if (checkoutErrors[field]) {
+      setCheckoutErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
+
+  const validateAddressStep = () => {
+    const errs = {};
+    const nameVal = (draft.name ?? "").trim();
+    const emailVal = (draft.email ?? "").trim();
+    const addressVal = (draft.address ?? "").trim();
+    const cityVal = (draft.city ?? "").trim();
+    const postalVal = (draft.postal ?? "").trim();
+    const countryVal = (draft.country ?? "").trim();
+
+    if (!nameVal) {
+      errs.name = "Full name is required.";
+    } else if (nameVal.length < 2) {
+      errs.name = "Name must be at least 2 characters.";
+    }
+
+    if (!emailVal) {
+      errs.email = "Email address is required.";
+    } else if (!/^[^s@]+@[^s@]+\.[^s@]+$/.test(emailVal)) {
+      errs.email = "Please enter a valid email address.";
+    }
+
+    if (!addressVal) {
+      errs.address = "Street address is required.";
+    } else if (addressVal.length < 4) {
+      errs.address = "Please enter a complete street address.";
+    }
+
+    if (!cityVal) {
+      errs.city = "City is required.";
+    }
+
+    if (!postalVal) {
+      errs.postal = "Postal code is required.";
+    } else if (postalVal.length < 3) {
+      errs.postal = "Enter a valid postal code.";
+    }
+
+    if (!countryVal) {
+      errs.country = "Country is required.";
+    }
+
+    setCheckoutErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const validatePaymentStep = () => {
+    if (draft.payment === "paypal") return true;
+
+    const errs = {};
+    const cardName = ((draft.cardName ?? draft.name) ?? "").trim();
+    const cleanNumber = (draft.cardNumber ?? "").replace(/\s+/g, "");
+    const expiry = (draft.expiry ?? "").trim();
+    const cvv = (draft.cvv ?? "").trim();
+
+    if (!cardName) {
+      errs.cardName = "Name on card is required.";
+    }
+
+    if (!cleanNumber) {
+      errs.cardNumber = "Card number is required.";
+    } else if (!/^\d{12,19}$/.test(cleanNumber)) {
+      errs.cardNumber = "Card number must be 12 to 19 digits.";
+    }
+
+    if (!expiry) {
+      errs.expiry = "Expiry date is required.";
+    } else if (!/^(0[1-9]|1[0-2])\/?([0-9]{2})$/.test(expiry)) {
+      errs.expiry = "Use MM/YY format (e.g. 12/28).";
+    }
+
+    if (!cvv) {
+      errs.cvv = "Security code is required.";
+    } else if (!/^\d{3,4}$/.test(cvv)) {
+      errs.cvv = "CVV must be 3 or 4 digits.";
+    }
+
+    setCheckoutErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
   const lines = buyNowId
     ? products
         .filter((product) => product.id === buyNowId)
@@ -1578,6 +1840,12 @@ export function CheckoutPage({ products, cart }) {
   const total = subtotal - discount + shipping;
   const saveAndGo = (event) => {
     event.preventDefault();
+    if (step === "address" && !validateAddressStep()) {
+      return;
+    }
+    if (step === "payment" && !validatePaymentStep()) {
+      return;
+    }
     const next = steps[activeIndex + 1];
     const savedDraft = { ...draft };
     if (savedDraft.cardNumber) {
@@ -1675,6 +1943,7 @@ export function CheckoutPage({ products, cart }) {
       payment: draft.payment ?? "card",
     };
     setStore("orders", [order, ...(getStore("orders") ?? [])]);
+    createOrderApi(order).catch((err) => console.error("Order API create failed:", err));
     dispatch(
       replaceProducts(
         latestProducts.map((product) => {
@@ -1704,6 +1973,7 @@ export function CheckoutPage({ products, cart }) {
       );
     } else if (!buyNowId) {
       dispatch(clearCart());
+      clearCartApi().catch((err) => console.warn("Cart clear API:", err));
     }
     setStore("checkoutDraft", {});
     navigate(`/order-success?id=${encodeURIComponent(order.id)}`);
@@ -1752,7 +2022,7 @@ export function CheckoutPage({ products, cart }) {
             ))}
           </div>
           {step === "address" && (
-            <form onSubmit={saveAndGo} className="checkout-form">
+            <form onSubmit={saveAndGo} className="checkout-form" noValidate>
               <span className="eyebrow">STEP 01 — WHERE TO?</span>
               <h1>Delivery address</h1>
               <p>Where should we send your good things?</p>
@@ -1760,69 +2030,75 @@ export function CheckoutPage({ products, cart }) {
                 <label className="form-wide">
                   Full name
                   <input
-                    required
                     autoComplete="name"
                     value={draft.name ?? ""}
-                    onChange={(event) =>
-                      setDraft({ ...draft, name: event.target.value })
-                    }
+                    onChange={(event) => updateDraft("name", event.target.value)}
+                    className={checkoutErrors.name ? "input-error" : ""}
                   />
+                  {checkoutErrors.name && (
+                    <span className="field-error-text">{checkoutErrors.name}</span>
+                  )}
                 </label>
                 <label className="form-wide">
                   Email address
                   <input
                     type="email"
-                    required
                     autoComplete="email"
                     value={draft.email ?? ""}
-                    onChange={(event) =>
-                      setDraft({ ...draft, email: event.target.value })
-                    }
+                    onChange={(event) => updateDraft("email", event.target.value)}
+                    className={checkoutErrors.email ? "input-error" : ""}
                   />
+                  {checkoutErrors.email && (
+                    <span className="field-error-text">{checkoutErrors.email}</span>
+                  )}
                 </label>
                 <label className="form-wide">
                   Street address
                   <input
-                    required
                     autoComplete="street-address"
                     value={draft.address ?? ""}
-                    onChange={(event) =>
-                      setDraft({ ...draft, address: event.target.value })
-                    }
+                    onChange={(event) => updateDraft("address", event.target.value)}
+                    className={checkoutErrors.address ? "input-error" : ""}
                   />
+                  {checkoutErrors.address && (
+                    <span className="field-error-text">{checkoutErrors.address}</span>
+                  )}
                 </label>
                 <label>
                   City
                   <input
-                    required
                     autoComplete="address-level2"
                     value={draft.city ?? ""}
-                    onChange={(event) =>
-                      setDraft({ ...draft, city: event.target.value })
-                    }
+                    onChange={(event) => updateDraft("city", event.target.value)}
+                    className={checkoutErrors.city ? "input-error" : ""}
                   />
+                  {checkoutErrors.city && (
+                    <span className="field-error-text">{checkoutErrors.city}</span>
+                  )}
                 </label>
                 <label>
                   Postal code
                   <input
-                    required
                     autoComplete="postal-code"
                     value={draft.postal ?? ""}
-                    onChange={(event) =>
-                      setDraft({ ...draft, postal: event.target.value })
-                    }
+                    onChange={(event) => updateDraft("postal", event.target.value)}
+                    className={checkoutErrors.postal ? "input-error" : ""}
                   />
+                  {checkoutErrors.postal && (
+                    <span className="field-error-text">{checkoutErrors.postal}</span>
+                  )}
                 </label>
                 <label className="form-wide">
                   Country
                   <input
-                    required
                     autoComplete="country-name"
                     value={draft.country ?? ""}
-                    onChange={(event) =>
-                      setDraft({ ...draft, country: event.target.value })
-                    }
+                    onChange={(event) => updateDraft("country", event.target.value)}
+                    className={checkoutErrors.country ? "input-error" : ""}
                   />
+                  {checkoutErrors.country && (
+                    <span className="field-error-text">{checkoutErrors.country}</span>
+                  )}
                 </label>
               </div>
               <button className="button button-dark" type="submit">
@@ -1907,49 +2183,52 @@ export function CheckoutPage({ products, cart }) {
                   <label className="form-wide">
                     Name on card
                     <input
-                      required
                       value={draft.cardName ?? draft.name ?? ""}
-                      onChange={(event) =>
-                        setDraft({ ...draft, cardName: event.target.value })
-                      }
+                      onChange={(event) => updateDraft("cardName", event.target.value)}
+                      className={checkoutErrors.cardName ? "input-error" : ""}
                     />
+                    {checkoutErrors.cardName && (
+                      <span className="field-error-text">{checkoutErrors.cardName}</span>
+                    )}
                   </label>
                   <label className="form-wide">
                     Card number
                     <input
                       inputMode="numeric"
-                      pattern="[0-9 ]{12,23}"
-                      maxLength="23"
                       placeholder="4242 4242 4242 4242"
-                      required
                       value={draft.cardNumber ?? ""}
-                      onChange={(event) =>
-                        setDraft({ ...draft, cardNumber: event.target.value })
-                      }
+                      onChange={(event) => updateDraft("cardNumber", event.target.value)}
+                      className={checkoutErrors.cardNumber ? "input-error" : ""}
                     />
+                    {checkoutErrors.cardNumber && (
+                      <span className="field-error-text">{checkoutErrors.cardNumber}</span>
+                    )}
                   </label>
                   <label>
                     Expiry date
                     <input
                       placeholder="MM / YY"
-                      required
                       value={draft.expiry ?? ""}
-                      onChange={(event) =>
-                        setDraft({ ...draft, expiry: event.target.value })
-                      }
+                      onChange={(event) => updateDraft("expiry", event.target.value)}
+                      className={checkoutErrors.expiry ? "input-error" : ""}
                     />
+                    {checkoutErrors.expiry && (
+                      <span className="field-error-text">{checkoutErrors.expiry}</span>
+                    )}
                   </label>
                   <label>
                     Security code
                     <input
                       inputMode="numeric"
                       maxLength="4"
-                      required
+                      placeholder="123"
                       value={draft.cvv ?? ""}
-                      onChange={(event) =>
-                        setDraft({ ...draft, cvv: event.target.value })
-                      }
+                      onChange={(event) => updateDraft("cvv", event.target.value)}
+                      className={checkoutErrors.cvv ? "input-error" : ""}
                     />
+                    {checkoutErrors.cvv && (
+                      <span className="field-error-text">{checkoutErrors.cvv}</span>
+                    )}
                   </label>
                 </div>
               )}
@@ -2074,7 +2353,22 @@ export function CheckoutPage({ products, cart }) {
 export function OrderSuccess() {
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
+  const [remoteOrder, setRemoteOrder] = useState(null);
+
+  useEffect(() => {
+    if (id) {
+      let active = true;
+      fetchOrderByIdApi(id)
+        .then((res) => {
+          if (active && res) setRemoteOrder(res);
+        })
+        .catch((err) => console.warn("Order by ID API error:", err));
+      return () => { active = false; };
+    }
+  }, [id]);
+
   const order =
+    remoteOrder ??
     (getStore("orders") ?? []).find((item) => item.id === id) ??
     (getStore("orders") ?? [])[0];
   return (
@@ -2115,7 +2409,30 @@ export function OrderSuccess() {
   );
 }
 
-export function OrdersPage({ orders }) {
+export function OrdersPage({ orders: storeOrders }) {
+  const [apiOrders, setApiOrders] = useState(null);
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    fetchOrdersApi({}, { signal: controller.signal })
+      .then((res) => {
+        if (!active || controller.signal.aborted) return;
+        const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : null;
+        if (items) setApiOrders(items);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError" && !controller.signal.aborted) {
+          console.error("Orders API fetch failed:", err);
+        }
+      });
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, []);
+
+  const orders = apiOrders || storeOrders || [];
+
   return (
     <section className="cart-page orders-page">
       <div className="page-title">
@@ -2199,32 +2516,62 @@ export default function CustomerLayout() {
   const dispatch = useDispatch();
   const [accountOpen, setAccountOpen] = useState(false);
   const [pendingWishlistRemoval, setPendingWishlistRemoval] = useState(null);
+  const [pendingAddToBag, setPendingAddToBag] = useState(null);
+
   const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+
   const onAdd = (id) => {
     const latestProducts = getStore("products") ?? [];
-    const product = latestProducts.find((item) => item.id === id);
-    const existing = cart.find((item) => item.productId === id);
-    if (!product || product.stock < (existing?.quantity ?? 0) + 1) {
-      window.alert(
-        product
-          ? "That’s all the stock we have right now."
-          : "This product is no longer available.",
-      );
+    const product = latestProducts.find((item) => item.id === id) || products.find((item) => item.id === id);
+    if (!product) {
+      window.alert("This product is no longer available.");
       return;
     }
-    dispatch(addToCart({ productId: id, stock: product.stock }));
-  };
-  const onBuyNow = (id) => {
-    const product = (getStore("products") ?? []).find(
-        (item) => item.id === id,
-    );
-    if (!product || product.stock <= 0) {
-        window.alert(`${product?.name ?? "This product"} is out of stock.`);
-        return;
+    const existing = cart.find((item) => (item.productId || item.id) === id);
+    if (product.stock <= (existing?.quantity ?? 0)) {
+      window.alert("That’s all the stock we have right now.");
+      return;
     }
-    navigate(checkoutUrl(id));
+    setPendingAddToBag(product);
   };
-  const onWish = (id) => {
+
+  const confirmAddToBag = async (quantity = 1) => {
+    if (!pendingAddToBag) return;
+    const product = pendingAddToBag;
+    dispatch(addToCart({ productId: product.id, stock: product.stock, quantity }));
+    try {
+      const res = await addToCartApi(product.id, quantity);
+      if (res?.items) {
+        dispatch(replaceCart(res.items));
+      }
+    } catch (err) {
+      console.error("Cart API update failed:", err);
+    }
+    setPendingAddToBag(null);
+  };
+
+  const [pendingBuyNow, setPendingBuyNow] = useState(null);
+
+  const onBuyNow = (id) => {
+    const product =
+      (getStore("products") ?? []).find((item) => item.id === id) ||
+      products.find((item) => item.id === id);
+
+    if (!product || product.stock <= 0) {
+      window.alert(`${product?.name ?? "This product"} is out of stock.`);
+      return;
+    }
+    setPendingBuyNow(product);
+  };
+
+  const confirmBuyNow = (quantity = 1) => {
+    if (!pendingBuyNow) return;
+    const product = pendingBuyNow;
+    setPendingBuyNow(null);
+    navigate(checkoutUrl(product.id, quantity));
+  };
+
+  const onWish = async (id) => {
     if (wishlist.includes(id)) {
       const product = products.find((item) => item.id === id);
       if (product) {
@@ -2233,23 +2580,55 @@ export default function CustomerLayout() {
       }
     }
     dispatch(addToWishlist(id));
+    try {
+      const res = await addToWishlistApi(id);
+      if (res?.items) {
+        dispatch(replaceWishlist(res.items));
+      }
+    } catch (err) {
+      console.error("Wishlist API call failed:", err);
+    }
   };
-  const confirmWishlistRemoval = () => {
+
+  const confirmWishlistRemoval = async () => {
     if (!pendingWishlistRemoval) return;
-    dispatch(removeFromWishlist(pendingWishlistRemoval.id));
+    const id = pendingWishlistRemoval.id;
+    dispatch(removeFromWishlist(id));
+    try {
+      const res = await removeFromWishlistApi(id);
+      if (res?.items) {
+        dispatch(replaceWishlist(res.items));
+      }
+    } catch (err) {
+      console.error("Wishlist remove API failed:", err);
+    }
     setPendingWishlistRemoval(null);
   };
-  
-const onQuantity = (id, quantity) => {
-  const stock =
-    products.find((product) => product.id === id)?.stock ?? 0;
 
-  dispatch(setCartQuantity({ productId: id, quantity, stock }));
-};
+  const onQuantity = async (id, quantity) => {
+    const stock = products.find((product) => product.id === id)?.stock ?? 0;
+    dispatch(setCartQuantity({ productId: id, quantity, stock }));
+    try {
+      const res = await updateCartQuantityApi(id, quantity);
+      if (res?.items) {
+        dispatch(replaceCart(res.items));
+      }
+    } catch (err) {
+      console.error("Cart quantity update failed:", err);
+    }
+  };
 
-const onRemove = (id) => {
-  dispatch(removeCartItem(id));
-};
+  const onRemove = async (id) => {
+    dispatch(removeCartItem(id));
+    try {
+      const res = await removeFromCartApi(id);
+      if (res?.items) {
+        dispatch(replaceCart(res.items));
+      }
+    } catch (err) {
+      console.error("Cart remove API failed:", err);
+    }
+  };
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -2296,6 +2675,21 @@ const onRemove = (id) => {
             confirmLabel="Remove item"
             onCancel={() => setPendingWishlistRemoval(null)}
             onConfirm={confirmWishlistRemoval}
+          />
+        )}
+        {pendingAddToBag && (
+          <AddToBagDialog
+            product={pendingAddToBag}
+            cartQuantity={cart.find((item) => (item.productId || item.id) === pendingAddToBag.id)?.quantity ?? 0}
+            onCancel={() => setPendingAddToBag(null)}
+            onConfirm={confirmAddToBag}
+          />
+        )}
+        {pendingBuyNow && (
+          <BuyNowDialog
+            product={pendingBuyNow}
+            onCancel={() => setPendingBuyNow(null)}
+            onConfirm={confirmBuyNow}
           />
         )}
       </div>

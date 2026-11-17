@@ -33,9 +33,100 @@ export const seedCategories = [
   { id: 'c-6', name: 'Accessories', icon: '✳' },
 ]
 
+function decodeJwtRole() {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const token = window.localStorage.getItem('jwt_token');
+      if (!token) return null;
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        const now = Math.floor(Date.now() / 1000);
+        if (payload.exp && payload.exp < now) {
+          return null;
+        }
+        return payload.role || null;
+      }
+    }
+  } catch (e) {
+    console.warn('Error reading token role:', e);
+  }
+  return null;
+}
+
+function readLocalSession(key) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      // 1-Hour JWT Session Expiry Enforcement
+      const expiresAt = Number(window.localStorage.getItem('jwt_expires_at') || 0);
+      const token = window.localStorage.getItem('jwt_token');
+
+      // Credentials are required: without a valid, unexpired token, neither session is valid
+      if (!token || (expiresAt && Date.now() > expiresAt)) {
+        window.localStorage.removeItem('jwt_token');
+        window.localStorage.removeItem('jwt_expires_at');
+        window.localStorage.removeItem('currentUser');
+        window.localStorage.removeItem('currentAdmin');
+        return null;
+      }
+
+      // Check role exclusivity encoded within the signed JWT
+      const role = decodeJwtRole();
+      if (!role) {
+        window.localStorage.removeItem('jwt_token');
+        window.localStorage.removeItem('jwt_expires_at');
+        window.localStorage.removeItem('currentUser');
+        window.localStorage.removeItem('currentAdmin');
+        return null;
+      }
+
+      if (role === 'customer') {
+        if (key === 'currentAdmin') {
+          window.localStorage.removeItem('currentAdmin');
+          return null;
+        }
+      } else if (role === 'admin') {
+        if (key === 'currentUser') {
+          window.localStorage.removeItem('currentUser');
+          return null;
+        }
+      }
+
+      const raw = window.localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    }
+  } catch (e) {
+    console.warn(`Could not read ${key} from storage:`, e);
+  }
+  return null;
+}
+
+function writeLocalSession(key, value) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (value) {
+        window.localStorage.setItem(key, JSON.stringify(value));
+      } else {
+        window.localStorage.removeItem(key);
+      }
+    }
+  } catch (e) {
+    console.warn(`Could not save ${key} to storage:`, e);
+  }
+}
+
 const defaults = {
-  users: [],
-  currentUser: null,
+  users: [
+    {
+      id: 'user-customer',
+      name: 'Customer',
+      email: 'customer@gmail.com',
+      password: 'customer123',
+      role: 'customer',
+    },
+  ],
+  currentUser: readLocalSession('currentUser'),
+  currentAdmin: readLocalSession('currentAdmin'),
   products: seedProducts,
   categories: seedCategories,
   cart: [],
@@ -51,40 +142,109 @@ let pendingSaves = Promise.resolve()
 
 export function initializeStore() {
   if (!initialization) {
-    initialization = initializeBackendStore(defaults).then((remoteStore) => {
-      storeValues = { ...defaults, ...remoteStore }
-      backendReady = true
+    const initialData = {
+      ...defaults,
+      currentUser: null,
+      currentAdmin: null,
+    }
+    initialization = initializeBackendStore(initialData).then((remoteStore) => {
+      let currentUser = readLocalSession('currentUser')
+      let currentAdmin = readLocalSession('currentAdmin')
+
+      // Enforce strict mutual exclusivity: only one role can be active
+      if (currentAdmin && currentUser) {
+        const activeRole = decodeJwtRole();
+        if (activeRole === 'admin') {
+          currentUser = null;
+          writeLocalSession('currentUser', null);
+        } else {
+          currentAdmin = null;
+          writeLocalSession('currentAdmin', null);
+        }
+      }
+
+      storeValues = {
+        ...defaults,
+        ...remoteStore,
+        currentUser,
+        currentAdmin,
+      };
+
+      backendReady = true;
       Object.keys(defaults).forEach((key) => {
-        window.dispatchEvent(new CustomEvent('store-update', { detail: { key } }))
-      })
-      return storeValues
+        window.dispatchEvent(new CustomEvent('store-update', { detail: { key } }));
+      });
+      return storeValues;
     }).catch((error) => {
-      initialization = undefined
-      throw error
-    })
+      initialization = undefined;
+      throw error;
+    });
   }
-  return initialization
+  return initialization;
 }
 
 export function getStore(key) {
-  return storeValues[key] ?? defaults[key]
+  return storeValues[key] ?? defaults[key];
 }
 
-export function setStore(key, value) {
-  storeValues = { ...storeValues, [key]: value }
-  window.dispatchEvent(new CustomEvent('store-update', { detail: { key } }))
-  if (backendReady) {
+export function setStore(key, value, options = {}) {
+  const existing = storeValues[key];
+  const isUnchanged =
+    existing === value ||
+    (typeof value === 'object' &&
+      value !== null &&
+      typeof existing === 'object' &&
+      existing !== null &&
+      JSON.stringify(existing) === JSON.stringify(value));
+
+  if (isUnchanged && key !== 'currentUser' && key !== 'currentAdmin') {
+    return;
+  }
+
+  storeValues = { ...storeValues, [key]: value };
+
+  // Persist session to local storage so page refresh retains login and enforces exclusivity
+  if (key === 'currentUser') {
+    writeLocalSession('currentUser', value);
+    if (value) {
+      // Clear opposing admin session immediately
+      storeValues.currentAdmin = null;
+      writeLocalSession('currentAdmin', null);
+      window.dispatchEvent(new CustomEvent('store-update', { detail: { key: 'currentAdmin' } }));
+    }
+  } else if (key === 'currentAdmin') {
+    writeLocalSession('currentAdmin', value);
+    if (value) {
+      // Clear opposing customer session immediately
+      storeValues.currentUser = null;
+      writeLocalSession('currentUser', null);
+      window.dispatchEvent(new CustomEvent('store-update', { detail: { key: 'currentUser' } }));
+    }
+  }
+
+  window.dispatchEvent(new CustomEvent('store-update', { detail: { key } }));
+
+  if (
+    backendReady &&
+    key !== 'currentUser' &&
+    key !== 'currentAdmin' &&
+    !options.skipSave
+  ) {
     pendingSaves = pendingSaves.then(() => saveBackendStoreValue(key, value)).then(() => {
-      window.dispatchEvent(new CustomEvent('store-saved', { detail: { key } }))
+      window.dispatchEvent(new CustomEvent('store-saved', { detail: { key } }));
     }).catch((error) => {
-      console.error(`Could not save "${key}" to the backend.`, error)
-      window.dispatchEvent(new CustomEvent('store-error', { detail: { key, message: error.message } }))
-    })
+      console.error(`Could not save "${key}" to the backend.`, error);
+      window.dispatchEvent(new CustomEvent('store-error', { detail: { key, message: error.message } }));
+    });
   }
 }
 
-export function updateStore(key, updater) {
-  setStore(key, updater(getStore(key)))
+export function updateStore(key, updater, options = {}) {
+  if (typeof updater === 'function') {
+    setStore(key, updater(getStore(key)), options)
+  } else {
+    setStore(key, updater, options)
+  }
 }
 
 export function useStore(key) {
@@ -109,4 +269,11 @@ export function money(value) {
 
 export function makeId(prefix = 'id') {
   return `${prefix}-${globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36)}`
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('session-expired', () => {
+    setStore('currentUser', null);
+    setStore('currentAdmin', null);
+  });
 }

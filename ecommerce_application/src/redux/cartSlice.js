@@ -15,7 +15,7 @@ const cartSlice = createSlice({
 
   reducers: {
     addToCart: (state, action) => {
-      const { productId, stock } = action.payload;
+      const { productId, stock, quantity = 1 } = action.payload;
 
       if (!productId || stock <= 0) return;
 
@@ -23,16 +23,15 @@ const cartSlice = createSlice({
         (item) => item.productId === productId
       );
 
+      const addAmount = Math.max(1, Number(quantity) || 1);
+
       if (existingItem) {
-        if (existingItem.quantity < stock) {
-          state.items = state.items
-            .filter((item) => item.productId !== productId)
-            .concat({ ...existingItem, quantity: existingItem.quantity + 1 });
-        }
+        const newQty = Math.min(stock, existingItem.quantity + addAmount);
+        existingItem.quantity = newQty;
       } else {
         state.items.push({
           productId,
-          quantity: 1,
+          quantity: Math.min(stock, addAmount),
         });
       }
     },

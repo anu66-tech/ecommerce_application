@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-Commerce Application System Flowchart & Visual Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #070a14;
+      --surface: #0e1424;
+      --card: #151d33;
+      --card-hover: #1c2744;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(99, 102, 241, 0.4);
+
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --dim: #64748b;
+
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --primary-glow: rgba(99, 102, 241, 0.35);
+
+      --cust: #38bdf8;
+      --adm: #c084fc;
+      --get: #10b981;
+      --post: #3b82f6;
+      --db-color: #f97316;
+      --warn: #f59e0b;
+      --err: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, #070a14, #0a1122);
+      background-size: 24px 24px, 100% 100%;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Sticky Header */
+    header {
+      background: rgba(14, 20, 36, 0.88);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+      padding: 16px 32px;
+      position: sticky;
+      top: 0;
+      z-index: 90;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #4f46e5, #06b6d4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
+    }
+
+    h1 {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .tagline {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Tab Switcher */
+    .view-switcher {
+      display: flex;
+      gap: 6px;
+      background: #090e1a;
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .btn-view {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .btn-view:hover {
+      color: #fff;
+    }
+
+    .btn-view.active {
+      background: #1e293b;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .btn-view.active.d1 { color: #818cf8; border-bottom: 2px solid #818cf8; }
+    .btn-view.active.d2 { color: var(--cust); border-bottom: 2px solid var(--cust); }
+    .btn-view.active.d3 { color: #34d399; border-bottom: 2px solid #34d399; }
+    .btn-view.active.d4 { color: var(--adm); border-bottom: 2px solid var(--adm); }
+    .btn-view.active.d5 { color: var(--db-color); border-bottom: 2px solid var(--db-color); }
+    .btn-view.active.d6 { color: #fbbf24; border-bottom: 2px solid #fbbf24; }
+
+    /* Main Container */
+    .viewport {
+      flex: 1;
+      padding: 24px 32px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Panels */
+    .diagram-panel {
+      display: none;
+      animation: fadeIn 0.25s ease-out;
+    }
+    .diagram-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Info Strip */
+    .info-strip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .info-title {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .info-desc {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .legend-chips {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .chip {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .chip-ui { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .chip-redux { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+    .chip-api { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .chip-backend { background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3); }
+    .chip-db { background: rgba(249, 115, 22, 0.15); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.3); }
+    .chip-dec { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    /* Diagram Canvas */
+    .canvas-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      overflow-x: auto;
+      min-height: 520px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .mermaid {
+      width: 100%;
+      text-align: center;
+    }
+
+    /* Key Insights Footer */
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .insight-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .insight-box h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .insight-box p {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sticky Top Header -->
+  <header>
+    <div class="brand-group">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <h1>E-Commerce System Flowchart & Visual Architecture</h1>
+        <div class="tagline">Grounded in actual project code: React 18 ➔ Redux ➔ NestJS ➔ Prisma ➔ PostgreSQL</div>
+      </div>
+    </div>
+
+    <!-- Mode Selector Tabs -->
+    <div class="view-switcher">
+      <button class="btn-view d1 active" onclick="switchDiagram('d1')">
+        🏛️ 1. System Overview
+      </button>
+      <button class="btn-view d2" onclick="switchDiagram('d2')">
+        🛍️ 2. Customer Flow
+      </button>
+      <button class="btn-view d3" onclick="switchDiagram('d3')">
+        ⚡ 3. Order Processing & ACID Check
+      </button>
+      <button class="btn-view d4" onclick="switchDiagram('d4')">
+        🛡️ 4. Admin Management Flow
+      </button>
+      <button class="btn-view d5" onclick="switchDiagram('d5')">
+        🐘 5. PostgreSQL & Prisma Schema
+      </button>
+      <button class="btn-view d6" onclick="switchDiagram('d6')">
+        🔄 6. End-to-End Pipeline
+      </button>
+    </div>
+  </header>
+
+  <main class="viewport">
+
+    <!-- ==========================================
+         DIAGRAM 1: SYSTEM OVERVIEW (Multi-Tier)
+         ========================================== -->
+    <section id="panel-d1" class="diagram-panel active">
+      <div class="info-strip">
+        <div>
+          <div class="info-title">🏛️ Diagram 1: Complete System Overview & Multi-Tier Topology</div>
+          <div class="info-desc">Shows how Customer and Admin frontend tiers connect through Redux, the Fetch interceptor, NestJS services, and PostgreSQL.</div>
+        </div>
+        <div class="legend-chips">
+          <span class="chip chip-ui">React UI</span>
+          <span class="chip chip-redux">Redux / State</span>
+          <span class="chip chip-api">Interceptor</span>
+          <span class="chip chip-backend">NestJS Backend</span>
+          <span class="chip chip-db">PostgreSQL</span>
+        </div>
+      </div>
+
+      <div class="canvas-card">
+        <pre class="mermaid">
+flowchart TD
+  classDef actor fill:#0284c7,stroke:#38bdf8,stroke-width:2px,color:#fff;
+  classDef ui fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
+  classDef redux fill:#312e81,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
+  classDef api fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#f8fafc;
+  classDef backend fill:#581c87,stroke:#c084fc,stroke-width:2px,color:#f8fafc;
+  classDef orm fill:#701a75,stroke:#e879f9,stroke-width:2px,color:#f8fafc;
+  classDef db fill:#431407,stroke:#f97316,stroke-width:2px,color:#f8fafc;
+
+  USER["👤 Customer"]:::actor
+  ADMIN["👨‍💼 Admin"]:::actor
+
+  subgraph FE["REACT FRONTEND (Vite Port 5173)"]
+    C_UI["Storefront.jsx (Customer Portal)<br/>Home | Products | Detail | Cart | Checkout | Orders"]:::ui
+    A_UI["AdminPanel.jsx (Admin Portal)<br/>Dashboard | Products | Categories | Inventory | Orders"]:::ui
+  end
+
+  subgraph STATE["STATE MANAGEMENT LAYER"]
+    RDX["Redux Toolkit (store1.js)<br/>cartSlice | wishlistSlice | ProductSlice"]:::redux
+    MEM["In-Memory Store (store.js)<br/>localStorage & Event Bus"]:::redux
+  end
+
+  subgraph CLIENT_API["HTTP CLIENT INTERCEPTOR"]
+    REQ["Native Fetch Interceptor (backend.js)<br/>Bearer Token Injection & 401 Session Intercept"]:::api
+  end
+
+  subgraph BE["NESTJS REST API (Port 3000)"]
+    CTRL["NestJS Controllers<br/>Auth | Products | Categories | Cart | Orders | Inventory"]:::backend
+    SRV["NestJS Services<br/>Bcrypt Hashing | ACID Transactions | Stock Validation"]:::backend
+  end
+
+  subgraph ORM_LAYER["DATA ACCESS"]
+    PRS["Prisma ORM (prisma.service.ts)<br/>Type-safe Client & Atomic Transactions"]:::orm
+  end
+
+  subgraph DB_LAYER["POSTGRESQL (Port 5432)"]
+    PG[("PostgreSQL DB: ecommerce_application<br/>Relational: products, categories<br/>State Store: app_store")]:::db
+  end
+
+  USER --> C_UI
+  ADMIN --> A_UI
+  C_UI <--> RDX
+  A_UI <--> RDX
+  RDX <--> MEM
+  C_UI --> REQ
+  A_UI --> REQ
+  REQ --> CTRL
+  CTRL --> SRV
+  SRV --> PRS
+  PRS --> PG
+        </pre>
+      </div>
+
+      <div class="insights-grid">
+        <div class="insight-box">
+          <h4>🔒 Mutual Role Exclusivity</h4>
+          <p>Login auto-detects roles. Customers cannot mutate admin routes, and admins cannot contaminate customer carts.</p>
+        </div>
+        <div class="insight-box">
+          <h4>⚡ 1-Page = 1-API Rule</h4>
+          <p>Global mount loops eliminated. Individual page components query only their necessary slice.</p>
+        </div>
+        <div class="insight-box">
+          <h4>🛡️ Fetch Interceptor</h4>
+          <p><code>backend.js</code> injects 1-hour JWT tokens and intercepts 401 Unauthorized responses to trigger auto-logout.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         DIAGRAM 2: CUSTOMER SHOPPING FLOW
+         ========================================== -->
+    <section id="panel-d2" class="diagram-panel">
+      <div class="info-strip">
+        <div>
+          <div class="info-title">🛍️ Diagram 2: Customer End-to-End Shopping Journey</div>
+          <div class="info-desc">Step-by-step path from landing on Home to browsing, filtering, adding to bag, and placing an order.</div>
+        </div>
+        <div class="legend-chips">
+          <span class="chip chip-ui">Page View</span>
+          <span class="chip chip-dec">Filter Action</span>
+          <span class="chip chip-api">State Action</span>
+          <span class="chip chip-backend">Success</span>
+        </div>
+      </div>
+
+      <div class="canvas-card">
+        <pre class="mermaid">
+flowchart TD
+  classDef actor fill:#0284c7,stroke:#38bdf8,stroke-width:2px,color:#fff;
+  classDef step fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
+  classDef filter fill:#0f172a,stroke:#64748b,stroke-width:1px,color:#cbd5e1;
+  classDef action fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#fff;
+  classDef success fill:#064e3b,stroke:#22c55e,stroke-width:2px,color:#fff;
+
+  CUST["👤 Customer"]:::actor
+  HOME["🏠 1. Home Page - /home<br/>Showcase Banner & Curated Rows"]:::step
+  CATALOG["🛍️ 2. Product Catalog - /products<br/>Live Faceted Catalog & Debounce"]:::step
+
+  subgraph FILTERS["Catalog Filter Controls"]
+    F_SRCH["🔎 Search (Debounced 350ms)"]:::filter
+    F_CAT["🏷️ Category Pills (Electronics, Beauty, etc.)"]:::filter
+    F_BRAND["🔖 Brand Selector"]:::filter
+    F_PRICE["💰 Price Range Filter"]:::filter
+    F_SORT["↕️ Sort: Price / Rating"]:::filter
+  end
+
+  DETAIL["📦 3. Product Details - /products/:id<br/>Specs, Image Gallery & Stock Indicator"]:::step
+  ADD_CART["🛒 4. Add to Cart<br/>Optimistic Redux + POST /cart"]:::action
+  CART_VIEW["🛒 5. Shopping Bag - /cart<br/>Quantity Controls & Price Calculation"]:::step
+  CHECKOUT["💳 6. Checkout - /checkout<br/>Address, Shipping & Payment Select"]:::step
+  PLACE_ORD["📝 7. Place Order Submit<br/>Triggers POST /orders"]:::action
+  CONFIRM["🎉 8. Order Success - /order-success<br/>Invoice Receipt & Status: Processing"]:::success
+
+  CUST --> HOME
+  HOME --> CATALOG
+  CATALOG --- FILTERS
+  FILTERS --> DETAIL
+  DETAIL --> ADD_CART
+  ADD_CART --> CART_VIEW
+  CART_VIEW --> CHECKOUT
+  CHECKOUT --> PLACE_ORD
+  PLACE_ORD --> CONFIRM
+        </pre>
+      </div>
+
+      <div class="insights-grid">
+        <div class="insight-box">
+          <h4>🔎 350ms Input Debounce</h4>
+          <p>Search input uses <code>useDebouncedValue</code> to pause rapid keystrokes and avoid spamming the backend.</p>
+        </div>
+        <div class="insight-box">
+          <h4>📦 Instant Optimistic UI</h4>
+          <p>Adding to bag instantly updates the top header badge via Redux before the backend response resolves.</p>
+        </div>
+        <div class="insight-box">
+          <h4>🧾 Direct Invoice Generation</h4>
+          <p>Landing on <code>/order-success?id=...</code> fetches strictly the single order record to display the receipt.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         DIAGRAM 3: ORDER PROCESSING & ACID CHECK
+         ========================================== -->
+    <section id="panel-d3" class="diagram-panel">
+      <div class="info-strip">
+        <div>
+          <div class="info-title">⚡ Diagram 3: Order Placement & ACID Stock Check Pipeline</div>
+          <div class="info-desc">Critical transaction flow verifying product inventory, executing atomic PostgreSQL commits, and updating state.</div>
+        </div>
+        <div class="legend-chips">
+          <span class="chip chip-ui">React Form</span>
+          <span class="chip chip-dec">Decision</span>
+          <span class="chip chip-api">Prisma Transaction</span>
+          <span class="chip chip-db">PostgreSQL Commit</span>
+        </div>
+      </div>
+
+      <div class="canvas-card">
+        <pre class="mermaid">
+flowchart TD
+  classDef ui fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
+  classDef api fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#f8fafc;
+  classDef backend fill:#581c87,stroke:#c084fc,stroke-width:2px,color:#f8fafc;
+  classDef decision fill:#78350f,stroke:#f59e0b,stroke-width:2px,color:#fff;
+  classDef err fill:#7f1d1d,stroke:#ef4444,stroke-width:2px,color:#fff;
+  classDef success fill:#064e3b,stroke:#22c55e,stroke-width:2px,color:#fff;
+  classDef db fill:#431407,stroke:#f97316,stroke-width:2px,color:#f8fafc;
+
+  UI_SUBMIT["🛒 Checkout.jsx: Customer clicks 'Place Order'"]:::ui
+  HTTP_POST["▱ backend.js: POST /orders (with Bearer Token)"]:::api
+  CTRL_ORD["⚙️ OrdersController: @Post() handles Order Input"]:::backend
+  SRV_START["⚡ OrdersService: Initiates prisma.$transaction"]:::backend
+  CHK_STOCK{"◇ Check Inventory Stock: product.stock >= item.quantity?"}:::decision
+  FAIL_STOCK["✕ Insufficient Stock: Throw BadRequestException (400)"]:::err
+  UI_ERR["❌ Checkout.jsx: Displays Stock Error Toast"]:::err
+
+  TX_DECREMENT["✓ Stock Available: tx.product.update (Decrement Stock)"]:::success
+  TX_SAVE_ORD["🗄️ Save Order Record into app_store.orders Array"]:::db
+  TX_CLEAR_CART["🗑️ Clear Customer Cart (POST /cart/clear)"]:::backend
+  RESP_SUCCESS["▱ 201 Created: Return Finalized Order Record"]:::api
+  UI_REDUX["↻ Redux Store: clearCart() & replaceProducts() Stock Sync"]:::ui
+  UI_SUCCESS["🎉 OrderSuccess.jsx: Redirect to /order-success?id=..."]:::success
+
+  UI_SUBMIT --> HTTP_POST
+  HTTP_POST --> CTRL_ORD
+  CTRL_ORD --> SRV_START
+  SRV_START --> CHK_STOCK
+  CHK_STOCK -- "No (Stock = 0)" --> FAIL_STOCK
+  FAIL_STOCK --> UI_ERR
+  CHK_STOCK -- "Yes (Stock Available)" --> TX_DECREMENT
+  TX_DECREMENT --> TX_SAVE_ORD
+  TX_SAVE_ORD --> TX_CLEAR_CART
+  TX_CLEAR_CART --> RESP_SUCCESS
+  RESP_SUCCESS --> UI_REDUX
+  UI_REDUX --> UI_SUCCESS
+        </pre>
+      </div>
+
+      <div class="insights-grid">
+        <div class="insight-box">
+          <h4>⚡ Prisma ACID Transaction</h4>
+          <p>Uses <code>prisma.$transaction</code> ensuring that stock decrements and order creation either all succeed or all roll back.</p>
+        </div>
+        <div class="insight-box">
+          <h4>🛡️ Oversell Prevention</h4>
+          <p>If an item has 0 stock, the transaction aborts with a 400 Bad Request before taking customer payment.</p>
+        </div>
+        <div class="insight-box">
+          <h4>🧹 Automatic Cart Cleared</h4>
+          <p>Upon transaction completion, the backend purges the customer's cart and Redux dispatches <code>clearCart()</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         DIAGRAM 4: ADMIN MANAGEMENT FLOW
+         ========================================== -->
+    <section id="panel-d4" class="diagram-panel">
+      <div class="info-strip">
+        <div>
+          <div class="info-title">🛡️ Diagram 4: Administrator Management & Back-Office Pipeline</div>
+          <div class="info-desc">Shows admin authentication, role guard verification, and full CRUD operations across Products, Categories, Stock, and Orders.</div>
+        </div>
+        <div class="legend-chips">
+          <span class="chip chip-backend">Admin Actor</span>
+          <span class="chip chip-dec">Route Guard</span>
+          <span class="chip chip-ui">Dashboard View</span>
+          <span class="chip chip-api">CRUD Action</span>
+        </div>
+      </div>
+
+      <div class="canvas-card">
+        <pre class="mermaid">
+flowchart TD
+  classDef actor fill:#9333ea,stroke:#c084fc,stroke-width:2px,color:#fff;
+  classDef guard fill:#78350f,stroke:#f59e0b,stroke-width:2px,color:#fff;
+  classDef ui fill:#1e293b,stroke:#c084fc,stroke-width:2px,color:#f8fafc;
+  classDef action fill:#1e1b4b,stroke:#818cf8,stroke-width:1.5px,color:#fff;
+
+  ADMIN["👨‍💼 Administrator"]:::actor
+  LOGIN["🔐 Admin Login - /login<br/>admin@gmail.com & Auto-Detect Role"]:::ui
+  GUARD{"◇ RequireAdmin Guard: Role == 'admin'?"}:::guard
+  DENIED["❌ Redirect to /home (Customer Portal)"]:::action
+  DASH["📊 Admin Dashboard - /admin<br/>Sales Metrics & Critical Low-Stock Alerts"]:::ui
+
+  subgraph MODULES["Admin Control Modules"]
+    MOD_P["📦 Products Admin<br/>/admin/products"]:::ui
+    MOD_C["🏷️ Categories Admin<br/>/admin/categories"]:::ui
+    MOD_I["📈 Inventory Admin<br/>/admin/inventory"]:::ui
+    MOD_O["🚚 Orders Admin<br/>/admin/orders"]:::ui
+  end
+
+  subgraph P_ACTIONS["Products Actions"]
+    PA_1["Add Product - POST /products"]:::action
+    PA_2["Edit Product - PUT /products/:id"]:::action
+    PA_3["Delete Product - DELETE /products/:id"]:::action
+  end
+
+  subgraph C_ACTIONS["Categories Actions"]
+    CA_1["Add Taxonomy - POST /categories"]:::action
+    CA_2["Edit Category - PUT /categories/:id"]:::action
+    CA_3["Delete Category - DELETE /categories/:id"]:::action
+  end
+
+  subgraph I_ACTIONS["Inventory Actions"]
+    IA_1["Stock Filters: Low / Out / Healthy"]:::action
+    IA_2["Inline +/- Stock: PATCH /inventory/:id/stock"]:::action
+    IA_3["Restock Modal: Add Custom Quantity"]:::action
+  end
+
+  subgraph O_ACTIONS["Orders Actions"]
+    OA_1["Search Orders by ID or Customer"]:::action
+    OA_2["Fulfillment Pipeline: Processing ➔ Shipped ➔ Delivered"]:::action
+  end
+
+  ADMIN --> LOGIN
+  LOGIN --> GUARD
+  GUARD -- "No" --> DENIED
+  GUARD -- "Yes" --> DASH
+  DASH --> MOD_P
+  DASH --> MOD_C
+  DASH --> MOD_I
+  DASH --> MOD_O
+
+  MOD_P --- P_ACTIONS
+  MOD_C --- C_ACTIONS
+  MOD_I --- I_ACTIONS
+  MOD_O --- O_ACTIONS
+        </pre>
+      </div>
+
+      <div class="insights-grid">
+        <div class="insight-box">
+          <h4>📊 Real-Time Inventory Alerts</h4>
+          <p>Mounts strictly 1 API call (<code>GET /inventory?limit=100</code>) to aggregate low-stock (&lt;10) warning banners.</p>
+        </div>
+        <div class="insight-box">
+          <h4>🚚 Order Status Pipeline</h4>
+          <p>Admin dropdown transitions orders from <code>Processing</code> ➔ <code>Shipped</code> ➔ <code>Delivered</code> in PostgreSQL.</p>
+        </div>
+        <div class="insight-box">
+          <h4>🏷️ Taxonomy Constraints</h4>
+          <p>Category deletion uses <code>onDelete: Restrict</code> in Prisma to prevent breaking existing products.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         DIAGRAM 5: POSTGRESQL & PRISMA SCHEMA
+         ========================================== -->
+    <section id="panel-d5" class="diagram-panel">
+      <div class="info-strip">
+        <div>
+          <div class="info-title">🐘 Diagram 5: Actual PostgreSQL & Prisma Database Schema</div>
+          <div class="info-desc">Direct reflection of `backend/prisma/schema.prisma` showing relational tables and the persistent JSON state store.</div>
+        </div>
+        <div class="legend-chips">
+          <span class="chip chip-db">Relational Model</span>
+          <span class="chip chip-ui">JSON Store Model</span>
+        </div>
+      </div>
+
+      <div class="canvas-card">
+        <pre class="mermaid">
+flowchart TD
+  classDef db fill:#431407,stroke:#f97316,stroke-width:2px,color:#f8fafc;
+  classDef rel fill:#1e293b,stroke:#f97316,stroke-width:1.5px,color:#f8fafc;
+  classDef store fill:#1e293b,stroke:#38bdf8,stroke-width:1.5px,color:#f8fafc;
+
+  subgraph PG["🐘 PostgreSQL Database (port 5432)"]
+    subgraph REL_TABLES["Relational Schema (schema.prisma)"]
+      CAT[("🏷️ Category (categories)<br/>• id: String (PK)<br/>• name: String (Unique)<br/>• icon: String?<br/>• created_at: DateTime")]:::rel
+      PROD[("📦 Product (products)<br/>• id: String (PK)<br/>• name: String (Index)<br/>• category: String (FK -> Category.name)<br/>• brand: String<br/>• price: Float<br/>• stock: Int<br/>• rating: Float<br/>• created_at: DateTime")]:::rel
+    end
+
+    subgraph JSON_STORE["Persistent State Store (schema.prisma)"]
+      APP_STORE[("🗄️ AppStore (app_store)<br/>• id: SmallInt (PK = 1)<br/>• data: Json (PostgreSQL JSONB)<br/>• initialized: Boolean")]:::store
+    end
+  end
+
+  subgraph JSON_FIELDS["JSON Slices (Stored in AppStore.data)"]
+    J_ORDERS["📜 orders[]<br/>id, customer, items, total, status, createdAt"]:::store
+    J_CART["🛒 cart[]<br/>productId, quantity"]:::store
+    J_WISH["❤️ wishlist[]<br/>productId list"]:::store
+    J_USERS["👤 users[]<br/>id, name, email, passwordHash, role"]:::store
+  end
+
+  CAT -- "1 : N (Relation: categoryRef)" --> PROD
+  APP_STORE --- JSON_FIELDS
+        </pre>
+      </div>
+
+      <div class="insights-grid">
+        <div class="insight-box">
+          <h4>📦 Relational Products & Categories</h4>
+          <p><code>Product</code> has a foreign key to <code>Category.name</code> with <code>onUpdate: Cascade, onDelete: Restrict</code>.</p>
+        </div>
+        <div class="insight-box">
+          <h4>🗄️ Dual-Storage Architecture</h4>
+          <p>Catalog items are relational for high-performance indexing, while session data is persisted in <code>app_store</code> JSONB.</p>
+        </div>
+        <div class="insight-box">
+          <h4>🔍 Performance Indexing</h4>
+          <p>Indexed on <code>products(name)</code> and <code>products(category)</code> for sub-millisecond filtering.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         DIAGRAM 6: END-TO-END DATA PIPELINE
+         ========================================== -->
+    <section id="panel-d6" class="diagram-panel">
+      <div class="info-strip">
+        <div>
+          <div class="info-title">🔄 Diagram 6: End-to-End Request/Response Data Pipeline</div>
+          <div class="info-desc">10-step sequence illustrating how a user action travels from the browser DOM down to PostgreSQL and returns a rendered UI update.</div>
+        </div>
+        <div class="legend-chips">
+          <span class="chip chip-ui">Step 1-3: Frontend</span>
+          <span class="chip chip-api">Step 4-5: Network & API</span>
+          <span class="chip chip-backend">Step 6-7: NestJS & Prisma</span>
+          <span class="chip chip-db">Step 8: PostgreSQL</span>
+          <span class="chip chip-ui">Step 9-10: UI Render</span>
+        </div>
+      </div>
+
+      <div class="canvas-card">
+        <pre class="mermaid">
+flowchart LR
+  classDef actor fill:#0284c7,stroke:#38bdf8,stroke-width:2px,color:#fff;
+  classDef ui fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
+  classDef redux fill:#312e81,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
+  classDef api fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#f8fafc;
+  classDef backend fill:#581c87,stroke:#c084fc,stroke-width:2px,color:#f8fafc;
+  classDef db fill:#431407,stroke:#f97316,stroke-width:2px,color:#f8fafc;
+
+  S1["1. User Action<br/>Click Place Order"]:::actor
+  --> S2["2. React Component<br/>Storefront.jsx"]:::ui
+  --> S3["3. Redux Dispatch<br/>cartSlice (store1.js)"]:::redux
+  --> S4["4. Interceptor<br/>backend.js (Bearer Token)"]:::api
+  --> S5["5. HTTP Request<br/>POST /orders (NestJS)"]:::api
+  --> S6["6. NestJS Controller<br/>orders.controller.ts"]:::backend
+  --> S7["7. NestJS Service<br/>orders.service.ts"]:::backend
+  --> S8["8. Prisma ORM<br/>prisma.$transaction"]:::backend
+  --> S9[("9. PostgreSQL DB<br/>Stock & Order Update")]:::db
+  --> S10["10. UI Update<br/>Success Toast & Receipt"]:::ui
+        </pre>
+      </div>
+
+      <div class="insights-grid">
+        <div class="insight-box">
+          <h4>1. User Click</h4>
+          <p>Customer triggers interaction in React UI component (e.g. form submission or button click).</p>
+        </div>
+        <div class="insight-box">
+          <h4>2. Interceptor Injection</h4>
+          <p>Native fetch wrapper attaches <code>Authorization: Bearer &lt;jwt&gt;</code> to authenticate request.</p>
+        </div>
+        <div class="insight-box">
+          <h4>3. ACID Database Commit</h4>
+          <p>Prisma transactions atomically mutate inventory and write records directly to PostgreSQL.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Initialize Mermaid with clean engineering dark-theme
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#0e1424',
+        primaryColor: '#6366f1',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#818cf8',
+        lineColor: '#64748b',
+        secondaryColor: '#1e293b',
+        tertiaryColor: '#151d33'
+      }
+    });
+
+    // Diagram Switcher Function
+    function switchDiagram(id) {
+      document.querySelectorAll('.btn-view').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.diagram-panel').forEach(panel => panel.classList.remove('active'));
+
+      const activeBtn = document.querySelector(`.btn-view.${id}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const activePanel = document.getElementById(`panel-${id}`);
+      if (activePanel) activePanel.classList.add('active');
+    }
+  </script>
+</body>
+</html>

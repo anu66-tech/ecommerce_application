@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture Walkthrough & Simulation Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #070a13;
+      --surface: #0e1424;
+      --card: #151d33;
+      --card-hover: #1c2744;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(99, 102, 241, 0.4);
+
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --dim: #64748b;
+
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --primary-glow: rgba(99, 102, 241, 0.35);
+
+      --cust: #38bdf8;
+      --cust-bg: rgba(56, 189, 248, 0.12);
+      --adm: #c084fc;
+      --adm-bg: rgba(192, 132, 252, 0.12);
+
+      --get: #10b981;
+      --post: #3b82f6;
+      --put: #f59e0b;
+      --patch: #ec4899;
+      --del: #ef4444;
+
+      --drawer-width: 420px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, #070a13, #0a1020);
+      background-size: 24px 24px, 100% 100%;
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: rgba(14, 20, 36, 0.88);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+      padding: 16px 28px;
+      position: sticky;
+      top: 0;
+      z-index: 90;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #4f46e5, #9333ea);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .tagline {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Tab Switcher */
+    .view-switcher {
+      display: flex;
+      gap: 6px;
+      background: #090e1a;
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .btn-view {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-view:hover {
+      color: #fff;
+    }
+
+    .btn-view.active {
+      background: #1e293b;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .btn-view.active.sim-tab { color: #34d399; border-bottom: 2px solid #34d399; }
+    .btn-view.active.cust-tab { color: var(--cust); border-bottom: 2px solid var(--cust); }
+    .btn-view.active.adm-tab { color: var(--adm); border-bottom: 2px solid var(--adm); }
+    .btn-view.active.tree-tab { color: #fbbf24; border-bottom: 2px solid #fbbf24; }
+
+    /* Main Container */
+    .viewport {
+      flex: 1;
+      padding: 28px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+      position: relative;
+    }
+
+    /* Panels */
+    .tab-panel {
+      display: none;
+      animation: fadeIn 0.25s ease-out;
+    }
+    .tab-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Simulation Controller */
+    .sim-controller {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .sim-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .scenario-picker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .scenario-picker select {
+      background: var(--card);
+      border: 1px solid var(--border-accent);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .playback-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ctrl-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .ctrl-btn:hover {
+      background: var(--card-hover);
+      border-color: var(--primary);
+    }
+
+    .ctrl-btn.btn-play {
+      background: var(--primary);
+      border-color: var(--primary-light);
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+
+    /* Step Timeline Scrubber */
+    .timeline-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      position: relative;
+      padding-top: 8px;
+    }
+
+    .timeline-step {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      position: relative;
+      opacity: 0.45;
+      transition: all 0.2s ease;
+    }
+
+    .timeline-step.active {
+      opacity: 1;
+    }
+
+    .step-marker {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--card);
+      border: 2px solid var(--border);
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+
+    .timeline-step.active .step-marker {
+      background: var(--primary);
+      border-color: #fff;
+      color: #fff;
+      box-shadow: 0 0 12px var(--primary-glow);
+      transform: scale(1.15);
+    }
+
+    .step-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--muted);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .timeline-step.active .step-label {
+      color: #fff;
+    }
+
+    /* Simulation Visual Stage */
+    .stage-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      position: relative;
+      overflow-x: auto;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    .stage-pipeline {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 20px;
+      position: relative;
+      min-width: 1100px;
+      z-index: 2;
+    }
+
+    .stage-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+
+    .stage-box.active-box {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-glow), 0 12px 28px rgba(0,0,0,0.6);
+      background: #182442;
+      transform: translateY(-4px);
+    }
+
+    .stage-box-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stage-box-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .stage-box-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .stage-box-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .stage-detail-content {
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 80px;
+    }
+
+    .stage-detail-content code {
+      font-family: 'Fira Code', monospace;
+      font-size: 11.5px;
+      color: #93c5fd;
+    }
+
+    /* Live Data Packet Simulation Pill */
+    .packet-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 6px;
+      animation: pulseGlow 1.5s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }
+      50% { box-shadow: 0 0 16px rgba(16, 185, 129, 0.8); }
+    }
+
+    /* Narrative Step Explanation */
+    .narrative-card {
+      margin-top: 24px;
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 12px;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .narrative-step-badge {
+      background: var(--primary);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 6px 12px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+
+    .narrative-text h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .narrative-text p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* Mermaid Canvas Container */
+    .mermaid-canvas-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      overflow: auto;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      min-height: 600px;
+      display: flex;
+      justify-content: center;
+      position: relative;
+    }
+
+    .mermaid {
+      cursor: pointer;
+    }
+
+    /* Node Detail Slide-out Drawer */
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .drawer-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .node-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: var(--drawer-width);
+      max-width: 90vw;
+      height: 100vh;
+      background: #0f1629;
+      border-left: 1px solid var(--border);
+      box-shadow: -15px 0 35px rgba(0, 0, 0, 0.6);
+      z-index: 210;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .node-drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .drawer-title {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .drawer-close {
+      background: rgba(255, 255, 255, 0.06);
+      border: none;
+      color: var(--muted);
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+
+    .drawer-close:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+
+    .drawer-section {
+      margin-bottom: 20px;
+    }
+
+    .drawer-section-title {
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--dim);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .drawer-field {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #cbd5e1;
+    }
+
+    .drawer-field code {
+      font-family: 'Fira Code', monospace;
+      color: #93c5fd;
+    }
+
+    /* Quick Interactive Node Buttons Grid */
+    .quick-nodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .quick-node-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .quick-node-card:hover {
+      background: var(--card-hover);
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .q-title {
+      font-family: 'Fira Code', monospace;
+      font-size: 12.5px;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .q-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .q-pill {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Sticky Bar -->
+  <header>
+    <div class="brand-group">
+      <div class="brand-icon">🧭</div>
+      <div>
+        <h1>Architecture Walkthrough & Simulation Explorer</h1>
+        <div class="tagline">Cognitive visual diagrams, packet flow simulation & interactive node inspector</div>
+      </div>
+    </div>
+
+    <!-- Mode Tabs -->
+    <div class="view-switcher">
+      <button class="btn-view sim-tab active" onclick="switchView('sim')">
+        🎮 Interactive Simulation
+      </button>
+      <button class="btn-view cust-tab" onclick="switchView('cust')">
+        🛍️ Customer Flowchart
+      </button>
+      <button class="btn-view adm-tab" onclick="switchView('adm')">
+        🛡️ Admin Mutation Map
+      </button>
+      <button class="btn-view tree-tab" onclick="switchView('tree')">
+        📁 Complete Directory Map
+      </button>
+    </div>
+  </header>
+
+  <main class="viewport">
+
+    <!-- ==============================================================
+         TAB 1: INTERACTIVE SIMULATION (techczech walkthrough style)
+         ============================================================== -->
+    <section id="tab-sim" class="tab-panel active">
+      <div class="sim-controller">
+        <div class="sim-top">
+          <div class="scenario-picker">
+            <span style="font-size:13px;color:var(--muted);font-weight:600">Walkthrough Scenario:</span>
+            <select id="scenarioSelect" onchange="loadScenario(this.value)">
+              <option value="cart">1. Customer: Add Product to Cart & Checkout</option>
+              <option value="restock">2. Admin: Live Stock Alert & Inventory Restock</option>
+              <option value="login">3. Auth: Unified Login & 1-Hr JWT Routing</option>
+            </select>
+          </div>
+
+          <div class="playback-controls">
+            <button class="ctrl-btn" onclick="prevStep()">◀ Previous</button>
+            <button class="ctrl-btn btn-play" id="btnPlay" onclick="togglePlay()">▶ Play Auto-Walkthrough</button>
+            <button class="ctrl-btn" onclick="nextStep()">Next ▶</button>
+          </div>
+        </div>
+
+        <!-- Scrubber -->
+        <div class="timeline-bar" id="timelineBar">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- Simulation Visual Stage -->
+      <div class="stage-container">
+        <div class="stage-pipeline">
+          <!-- Box 1 -->
+          <div class="stage-box" id="stage-box-0">
+            <div class="stage-box-header">
+              <div class="stage-box-icon" style="background:rgba(56,189,248,0.15);color:var(--cust)">👤</div>
+              <div>
+                <div class="stage-box-title" id="stage-title-0">1. User Action</div>
+                <div class="stage-box-sub">Browser UI Trigger</div>
+              </div>
+            </div>
+            <div class="stage-detail-content" id="stage-content-0"></div>
+          </div>
+
+          <!-- Box 2 -->
+          <div class="stage-box" id="stage-box-1">
+            <div class="stage-box-header">
+              <div class="stage-box-icon" style="background:rgba(99,102,241,0.15);color:var(--primary-light)">📄</div>
+              <div>
+                <div class="stage-box-title" id="stage-title-1">2. Target Component</div>
+                <div class="stage-box-sub">Modular Page File</div>
+              </div>
+            </div>
+            <div class="stage-detail-content" id="stage-content-1"></div>
+          </div>
+
+          <!-- Box 3 -->
+          <div class="stage-box" id="stage-box-2">
+            <div class="stage-box-header">
+              <div class="stage-box-icon" style="background:rgba(16,185,129,0.15);color:var(--get)">🛡️</div>
+              <div>
+                <div class="stage-box-title" id="stage-title-2">3. Interceptor Service</div>
+                <div class="stage-box-sub">backend.js Client</div>
+              </div>
+            </div>
+            <div class="stage-detail-content" id="stage-content-2"></div>
+          </div>
+
+          <!-- Box 4 -->
+          <div class="stage-box" id="stage-box-3">
+            <div class="stage-box-header">
+              <div class="stage-box-icon" style="background:rgba(192,132,252,0.15);color:var(--adm)">⚡</div>
+              <div>
+                <div class="stage-box-title" id="stage-title-3">4. NestJS Controller</div>
+                <div class="stage-box-sub">AuthGuard & DTO</div>
+              </div>
+            </div>
+            <div class="stage-detail-content" id="stage-content-3"></div>
+          </div>
+
+          <!-- Box 5 -->
+          <div class="stage-box" id="stage-box-4">
+            <div class="stage-box-header">
+              <div class="stage-box-icon" style="background:rgba(245,158,11,0.15);color:#fbbf24">🗄️</div>
+              <div>
+                <div class="stage-box-title" id="stage-title-4">5. PostgreSQL Database</div>
+                <div class="stage-box-sub">ACID Transaction Commit</div>
+              </div>
+            </div>
+            <div class="stage-detail-content" id="stage-content-4"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Narrative Step Card -->
+      <div class="narrative-card">
+        <div class="narrative-step-badge" id="narrativeBadge">Step 1 of 5</div>
+        <div class="narrative-text">
+          <h4 id="narrativeHeading">Action Description</h4>
+          <p id="narrativeBody">Detailed cognitive explanation of what occurs in the application architecture at this step.</p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ==============================================================
+         TAB 2: CUSTOMER STOREFRONT (alexanderop & visual-skills)
+         ============================================================== -->
+    <section id="tab-cust" class="tab-panel">
+      <!-- Quick Node Clicker Grid -->
+      <div style="margin-bottom:14px;font-size:13px;color:var(--muted)">
+        💡 <b>Click any component below</b> to inspect its file location, trigger hook, client signature, and matching endpoint:
+      </div>
+
+      <div class="quick-nodes-grid">
+        <div class="quick-node-card" onclick="openNodeDrawer('LoginPage')">
+          <div>
+            <div class="q-title">LoginPage.jsx</div>
+            <div class="q-sub">src/pages/customer/Auth/</div>
+          </div>
+          <span class="q-pill tag-POST">POST</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('Home')">
+          <div>
+            <div class="q-title">Home.jsx</div>
+            <div class="q-sub">src/pages/customer/Home/</div>
+          </div>
+          <span class="q-pill tag-GET">GET</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('Products')">
+          <div>
+            <div class="q-title">Products.jsx</div>
+            <div class="q-sub">src/pages/customer/Products/</div>
+          </div>
+          <span class="q-pill tag-GET">GET</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('ProductCard')">
+          <div>
+            <div class="q-title">ProductCard.jsx</div>
+            <div class="q-sub">Wishlist & Cart actions</div>
+          </div>
+          <span class="q-pill tag-POST">POST</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('ProductDetail')">
+          <div>
+            <div class="q-title">ProductDetail.jsx</div>
+            <div class="q-sub">src/pages/customer/ProductDetail/</div>
+          </div>
+          <span class="q-pill tag-GET">GET</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('Wishlist')">
+          <div>
+            <div class="q-title">Wishlist.jsx</div>
+            <div class="q-sub">src/pages/customer/Wishlist/</div>
+          </div>
+          <span class="q-pill tag-GET">GET</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('Cart')">
+          <div>
+            <div class="q-title">Cart.jsx</div>
+            <div class="q-sub">Line items & quantities</div>
+          </div>
+          <span class="q-pill tag-PATCH">PATCH</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('Checkout')">
+          <div>
+            <div class="q-title">Checkout.jsx</div>
+            <div class="q-sub">Order placement form</div>
+          </div>
+          <span class="q-pill tag-POST">POST</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('Orders')">
+          <div>
+            <div class="q-title">Orders.jsx</div>
+            <div class="q-sub">src/pages/customer/Orders/</div>
+          </div>
+          <span class="q-pill tag-GET">GET</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('Account')">
+          <div>
+            <div class="q-title">Account.jsx</div>
+            <div class="q-sub">Customer profile & sign out</div>
+          </div>
+          <span class="q-pill tag-POST">POST</span>
+        </div>
+      </div>
+
+      <!-- Mermaid Diagram -->
+      <div class="mermaid-canvas-wrapper">
+        <pre class="mermaid">
+flowchart TD
+  subgraph CUSTOMER_PORTAL["Customer Storefront Portal"]
+    C_SHELL["CustomerLayout.jsx (Header + Footer)"]
+    C_SHELL --> P_HOME["Home/Home.jsx"]
+    C_SHELL --> P_PROD["Products/Products.jsx"]
+    C_SHELL --> P_DET["ProductDetail/ProductDetail.jsx"]
+    C_SHELL --> P_WISH["Wishlist/Wishlist.jsx"]
+    C_SHELL --> P_CART["Cart/Cart.jsx"]
+    C_SHELL --> P_CHK["Checkout/Checkout.jsx"]
+    C_SHELL --> P_ORD["Orders/Orders.jsx"]
+    C_SHELL --> P_ACC["Account/Account.jsx"]
+  end
+
+  subgraph CLIENT_API["Native Fetch Interceptor (backend.js)"]
+    A_PROD["fetchProducts(limit)"]
+    A_DET["fetchProductById(id)"]
+    A_WISH["fetchWishlistApi() / toggleWishlistApi()"]
+    A_CART["fetchCartApi() / updateCartItemQuantityApi()"]
+    A_ORD["createOrderApi() / fetchOrdersApi()"]
+    A_LOG["loginApi() / logoutApi()"]
+  end
+
+  subgraph NEST_API["NestJS Backend Endpoints"]
+    E_P["GET /products"]
+    E_D["GET /products/:id"]
+    E_W["GET, POST /wishlist"]
+    E_C["GET, POST, PATCH /cart"]
+    E_O["GET, POST /orders"]
+    E_A["POST /auth/login, POST /auth/logout"]
+  end
+
+  P_HOME --> A_PROD --> E_P
+  P_PROD --> A_PROD --> E_P
+  P_DET --> A_DET --> E_D
+  P_WISH --> A_WISH --> E_W
+  P_CART --> A_CART --> E_C
+  P_CHK --> A_ORD --> E_O
+  P_ORD --> A_ORD --> E_O
+  P_ACC --> A_LOG --> E_A
+        </pre>
+      </div>
+    </section>
+
+
+    <!-- ==============================================================
+         TAB 3: ADMIN BACK-OFFICE (Mutation Map)
+         ============================================================== -->
+    <section id="tab-adm" class="tab-panel">
+      <div style="margin-bottom:14px;font-size:13px;color:var(--muted)">
+        💡 <b>Click any Admin View or Modal below</b> to inspect its CRUD mutation trigger and database impact:
+      </div>
+
+      <div class="quick-nodes-grid">
+        <div class="quick-node-card" onclick="openNodeDrawer('AdminDashboard')">
+          <div>
+            <div class="q-title">Dashboard.jsx</div>
+            <div class="q-sub">src/pages/admin/Dashboard/</div>
+          </div>
+          <span class="q-pill tag-GET">GET</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('AdminProducts')">
+          <div>
+            <div class="q-title">Products.jsx</div>
+            <div class="q-sub">Catalog table & pagination</div>
+          </div>
+          <span class="q-pill tag-GET">GET</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('ProductModal')">
+          <div>
+            <div class="q-title">ProductModal.jsx</div>
+            <div class="q-sub">Create & Edit dialogs</div>
+          </div>
+          <span class="q-pill tag-POST">POST / PUT</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('DeleteModal')">
+          <div>
+            <div class="q-title">DeleteModal.jsx</div>
+            <div class="q-sub">Confirm product deletion</div>
+          </div>
+          <span class="q-pill tag-DELETE">DELETE</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('AdminCategories')">
+          <div>
+            <div class="q-title">Categories.jsx</div>
+            <div class="q-sub">src/pages/admin/Categories/</div>
+          </div>
+          <span class="q-pill tag-GET">GET</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('CategoryModal')">
+          <div>
+            <div class="q-title">CategoryModal.jsx</div>
+            <div class="q-sub">Taxonomy edit modal</div>
+          </div>
+          <span class="q-pill tag-POST">POST / PUT</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('AdminInventory')">
+          <div>
+            <div class="q-title">Inventory.jsx</div>
+            <div class="q-sub">Stock health & alerts</div>
+          </div>
+          <span class="q-pill tag-PATCH">PATCH</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('RestockModal')">
+          <div>
+            <div class="q-title">RestockModal.jsx</div>
+            <div class="q-sub">Bulk quantity adjustment</div>
+          </div>
+          <span class="q-pill tag-PATCH">PATCH</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('AdminOrders')">
+          <div>
+            <div class="q-title">Orders.jsx</div>
+            <div class="q-sub">Order fulfillment pipeline</div>
+          </div>
+          <span class="q-pill tag-PATCH">PATCH</span>
+        </div>
+        <div class="quick-node-card" onclick="openNodeDrawer('AdminAccount')">
+          <div>
+            <div class="q-title">Account.jsx</div>
+            <div class="q-sub">Clearance & admin sign out</div>
+          </div>
+          <span class="q-pill tag-POST">POST</span>
+        </div>
+      </div>
+
+      <!-- Mermaid Diagram -->
+      <div class="mermaid-canvas-wrapper">
+        <pre class="mermaid">
+flowchart TD
+  subgraph ADMIN_BACKOFFICE["Admin Back-Office Portal"]
+    A_SHELL["AdminLayout.jsx (Admin TopBar + Sidebar)"]
+    A_SHELL --> AD_DASH["Dashboard/Dashboard.jsx"]
+    A_SHELL --> AD_PROD["Products/Products.jsx"]
+    A_SHELL --> AD_CATS["Categories/Categories.jsx"]
+    A_SHELL --> AD_INV["Inventory/Inventory.jsx"]
+    A_SHELL --> AD_ORD["Orders/Orders.jsx"]
+    A_SHELL --> AD_ACC["Account/Account.jsx"]
+
+    AD_PROD --> M_PMOD["ProductModal.jsx"]
+    AD_PROD --> M_PDEL["DeleteModal.jsx"]
+    AD_CATS --> M_CMOD["CategoryModal.jsx"]
+    AD_INV --> M_REST["RestockModal.jsx"]
+  end
+
+  subgraph ADMIN_ENDPOINTS["NestJS REST CRUD Operations"]
+    OP_INV_GET["GET /inventory?limit=100"]
+    OP_PROD_POST["POST, PUT /products"]
+    OP_PROD_DEL["DELETE /products/:id"]
+    OP_CATS_POST["POST, PUT /categories"]
+    OP_STOCK_PATCH["PATCH /inventory/:id/stock"]
+    OP_ORD_PATCH["PATCH /orders/:id/status"]
+    OP_LOGOUT["POST /auth/logout"]
+  end
+
+  AD_DASH --> OP_INV_GET
+  M_PMOD --> OP_PROD_POST
+  M_PDEL --> OP_PROD_DEL
+  M_CMOD --> OP_CATS_POST
+  M_REST --> OP_STOCK_PATCH
+  AD_INV --> OP_STOCK_PATCH
+  AD_ORD --> OP_ORD_PATCH
+  AD_ACC --> OP_LOGOUT
+        </pre>
+      </div>
+    </section>
+
+
+    <!-- ==============================================================
+         TAB 4: DIRECTORY ARCHITECTURE MAP
+         ============================================================== -->
+    <section id="tab-tree" class="tab-panel">
+      <div class="mermaid-canvas-wrapper">
+        <pre class="mermaid">
+flowchart TD
+  ROOT["src / Application Root"]
+
+  ROOT --> API["api/"]
+  API --> BACKEND["backend.js (Fetch Interceptor)"]
+
+  ROOT --> COMP["components/"]
+  COMP --> COMMON["common/ (Icon, ConfirmationDialog, PageHeading)"]
+  COMP --> LAYOUT["layout/ (Sidebar, CustomerHeader, CustomerFooter)"]
+
+  ROOT --> PAGES["pages/"]
+
+  subgraph CUST_TREE["pages/customer/ (Storefront)"]
+    PAGES --> C_L["CustomerLayout.jsx"]
+    PAGES --> C1["Auth/ (LoginPage.jsx)"]
+    PAGES --> C2["Home/ (Home.jsx, HomeSection.jsx)"]
+    PAGES --> C3["Products/ (Products.jsx, Card, Grid)"]
+    PAGES --> C4["ProductDetail/ (ProductDetail.jsx)"]
+    PAGES --> C5["Wishlist/ (Wishlist.jsx)"]
+    PAGES --> C6["Cart/ (Cart.jsx, AddToBagDialog.jsx)"]
+    PAGES --> C7["Checkout/ (Checkout.jsx, BuyNowDialog.jsx)"]
+    PAGES --> C8["Orders/ (Orders.jsx, OrderSuccess.jsx)"]
+    PAGES --> C9["Account/ (Account.jsx)"]
+  end
+
+  subgraph ADM_TREE["pages/admin/ (Back-Office)"]
+    PAGES --> A_L["AdminLayout.jsx"]
+    PAGES --> A1["Dashboard/ (Dashboard.jsx)"]
+    PAGES --> A2["Products/ (Products, ProductModal, DeleteModal)"]
+    PAGES --> A3["Categories/ (Categories, CategoryModal)"]
+    PAGES --> A4["Inventory/ (Inventory, RestockModal)"]
+    PAGES --> A5["Orders/ (Orders.jsx)"]
+    PAGES --> A6["Account/ (Account.jsx)"]
+  end
+
+  ROOT --> ROUTES["routes/"]
+  ROUTES --> R_CUST["CustomerRoutes (RequireCustomer Guard)"]
+  ROUTES --> R_ADM["AdminRoutes (RequireAdmin Guard)"]
+        </pre>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Node Detail Slide-out Drawer -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeNodeDrawer()"></div>
+  <aside class="node-drawer" id="nodeDrawer">
+    <div class="drawer-header">
+      <div class="drawer-title" id="dTitle">Component Inspector</div>
+      <button class="drawer-close" onclick="closeNodeDrawer()">✕</button>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">File Location</div>
+      <div class="drawer-field" id="dPath"><code>src/pages/...</code></div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">Trigger Mechanism</div>
+      <div class="drawer-field" id="dTrigger">Mount Hook / Event</div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">API Client Call (backend.js)</div>
+      <div class="drawer-field" id="dApi"><code>apiFunction()</code></div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">NestJS Endpoint & Method</div>
+      <div class="drawer-field" id="dEndpoint"><code>GET /endpoint</code></div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">PostgreSQL Database Impact</div>
+      <div class="drawer-field" id="dDb">Table Record Impact</div>
+    </div>
+  </aside>
+
+  <script>
+    // Initialize Mermaid
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#0e1424',
+        primaryColor: '#6366f1',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#818cf8',
+        lineColor: '#64748b',
+        secondaryColor: '#1e293b',
+        tertiaryColor: '#151d33'
+      }
+    });
+
+    // Tab Switching
+    function switchView(tabId) {
+      document.querySelectorAll('.btn-view').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+      const activeBtn = document.querySelector(`.btn-view.${tabId}-tab`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const activePanel = document.getElementById(`tab-${tabId}`);
+      if (activePanel) activePanel.classList.add('active');
+    }
+
+    // Node Details Database
+    const nodeDetails = {
+      LoginPage: {
+        title: "LoginPage.jsx",
+        path: "src/pages/customer/Auth/LoginPage.jsx",
+        trigger: "Form onSubmit handler (Unified Credentials)",
+        api: "loginApi({ email, password })",
+        endpoint: "POST /auth/login",
+        db: "Reads User table; returns 1-Hour signed JWT token payload."
+      },
+      Home: {
+        title: "Home.jsx",
+        path: "src/pages/customer/Home/Home.jsx",
+        trigger: "useEffect(() => {}, []) on Component Mount",
+        api: "fetchProducts({ limit: 50 })",
+        endpoint: "GET /products?limit=50",
+        db: "SELECT * FROM Product ORDER BY rating DESC LIMIT 50"
+      },
+      Products: {
+        title: "Products.jsx",
+        path: "src/pages/customer/Products/Products.jsx",
+        trigger: "useEffect(() => {}, [query, page, sort])",
+        api: "fetchProducts(compiledQuery)",
+        endpoint: "GET /products?q=...&category=...&sort=...",
+        db: "Paginated query on Product table filtered by Category and Title."
+      },
+      ProductCard: {
+        title: "ProductCard.jsx",
+        path: "src/pages/customer/Products/ProductCard.jsx",
+        trigger: "onClick (Heart Icon or Add to Bag Button)",
+        api: "toggleWishlistApi(id) & addToCartApi(id, 1)",
+        endpoint: "POST /wishlist & POST /cart",
+        db: "Inserts into WishlistItem or CartItem with optimistic store sync."
+      },
+      ProductDetail: {
+        title: "ProductDetail.jsx",
+        path: "src/pages/customer/ProductDetail/ProductDetail.jsx",
+        trigger: "useEffect(() => {}, [productId]) on Navigation",
+        api: "fetchProductById(id)",
+        endpoint: "GET /products/:id",
+        db: "SELECT * FROM Product WHERE id = :id with Category relation."
+      },
+      Wishlist: {
+        title: "Wishlist.jsx",
+        path: "src/pages/customer/Wishlist/Wishlist.jsx",
+        trigger: "useEffect(() => {}, []) on Mount",
+        api: "fetchWishlistApi()",
+        endpoint: "GET /wishlist",
+        db: "SELECT * FROM Wishlist WHERE customerId = :userId"
+      },
+      Cart: {
+        title: "Cart.jsx",
+        path: "src/pages/customer/Cart/Cart.jsx",
+        trigger: "useEffect Mount & onClick Quantity +/-",
+        api: "fetchCartApi() & updateCartItemQuantityApi(id, qty)",
+        endpoint: "GET /cart & PATCH /cart/items/:id",
+        db: "UPDATE CartItem SET quantity = :qty WHERE id = :id"
+      },
+      Checkout: {
+        title: "Checkout.jsx",
+        path: "src/pages/customer/Checkout/Checkout.jsx",
+        trigger: "Form onSubmit ('Place Order')",
+        api: "createOrderApi(orderPayload)",
+        endpoint: "POST /orders",
+        db: "ACID Transaction: Inserts Order, OrderItems; decrements Stock; clears Cart."
+      },
+      Orders: {
+        title: "Orders.jsx",
+        path: "src/pages/customer/Orders/Orders.jsx",
+        trigger: "useEffect(() => {}, []) on Mount",
+        api: "fetchOrdersApi()",
+        endpoint: "GET /orders",
+        db: "SELECT * FROM Order WHERE customerId = :userId ORDER BY createdAt DESC"
+      },
+      Account: {
+        title: "Account.jsx",
+        path: "src/pages/customer/Account/Account.jsx",
+        trigger: "useEffect Mount & onClick 'Sign Out'",
+        api: "fetchOrdersApi() & logoutApi('customer')",
+        endpoint: "GET /orders & POST /auth/logout",
+        db: "Invalidates active JWT token session."
+      },
+      AdminDashboard: {
+        title: "Dashboard.jsx",
+        path: "src/pages/admin/Dashboard/Dashboard.jsx",
+        trigger: "useEffect Mount strictly once",
+        api: "fetchInventoryApi({ limit: 100 })",
+        endpoint: "GET /inventory?limit=100",
+        db: "Aggregates low-stock items (<10) and total active catalog value."
+      },
+      AdminProducts: {
+        title: "Products.jsx",
+        path: "src/pages/admin/Products/Products.jsx",
+        trigger: "useEffect([page, limit, q])",
+        api: "fetchProducts(query)",
+        endpoint: "GET /products",
+        db: "Catalog management pagination with total count."
+      },
+      ProductModal: {
+        title: "ProductModal.jsx",
+        path: "src/pages/admin/Products/ProductModal.jsx",
+        trigger: "Modal Form onSubmit (Save button)",
+        api: "createProductApi(data) or updateProductApi(id, data)",
+        endpoint: "POST /products or PUT /products/:id",
+        db: "INSERT or UPDATE on Product table in PostgreSQL."
+      },
+      DeleteModal: {
+        title: "DeleteModal.jsx",
+        path: "src/pages/admin/Products/DeleteModal.jsx",
+        trigger: "onClick Confirm Delete",
+        api: "deleteProductApi(id)",
+        endpoint: "DELETE /products/:id",
+        db: "DELETE FROM Product WHERE id = :id"
+      },
+      AdminCategories: {
+        title: "Categories.jsx",
+        path: "src/pages/admin/Categories/Categories.jsx",
+        trigger: "useEffect Mount",
+        api: "fetchCategoriesApi()",
+        endpoint: "GET /categories",
+        db: "SELECT * FROM Category with associated Product counts."
+      },
+      CategoryModal: {
+        title: "CategoryModal.jsx",
+        path: "src/pages/admin/Categories/CategoryModal.jsx",
+        trigger: "Modal Form onSubmit",
+        api: "createCategoryApi(data) or updateCategoryApi(id, data)",
+        endpoint: "POST /categories or PUT /categories/:id",
+        db: "INSERT or UPDATE on Category taxonomy table."
+      },
+      AdminInventory: {
+        title: "Inventory.jsx",
+        path: "src/pages/admin/Inventory/Inventory.jsx",
+        trigger: "useEffect Filter & onClick Inline +/-",
+        api: "fetchInventoryApi() & updateStockApi(id, newStock)",
+        endpoint: "GET /inventory & PATCH /inventory/:id/stock",
+        db: "UPDATE Product SET stock = :newStock WHERE id = :id"
+      },
+      RestockModal: {
+        title: "RestockModal.jsx",
+        path: "src/pages/admin/Inventory/RestockModal.jsx",
+        trigger: "Modal Form onSubmit (Apply Restock)",
+        api: "updateStockApi(id, currentStock + qty)",
+        endpoint: "PATCH /inventory/:id/stock",
+        db: "Increments inventory stock count directly in PostgreSQL."
+      },
+      AdminOrders: {
+        title: "Orders.jsx",
+        path: "src/pages/admin/Orders/Orders.jsx",
+        trigger: "useEffect Mount & Status Select onChange",
+        api: "fetchOrdersApi() & updateOrderStatusApi(id, status)",
+        endpoint: "GET /orders & PATCH /orders/:id/status",
+        db: "UPDATE Order SET status = :status (Processing ➔ Shipped ➔ Delivered)."
+      },
+      AdminAccount: {
+        title: "Account.jsx",
+        path: "src/pages/admin/Account/Account.jsx",
+        trigger: "useEffect Mount & onClick Admin Sign Out",
+        api: "fetchInventoryApi({ limit: 100 }) & logoutApi('admin')",
+        endpoint: "GET /inventory?limit=100 & POST /auth/logout",
+        db: "Clears administrative session token; redirects to /login."
+      }
+    };
+
+    function openNodeDrawer(nodeKey) {
+      const data = nodeDetails[nodeKey];
+      if (!data) return;
+
+      document.getElementById('dTitle').innerText = data.title;
+      document.getElementById('dPath').innerHTML = `<code>${data.path}</code>`;
+      document.getElementById('dTrigger').innerText = data.trigger;
+      document.getElementById('dApi').innerHTML = `<code>${data.api}</code>`;
+      document.getElementById('dEndpoint').innerHTML = `<code>${data.endpoint}</code>`;
+      document.getElementById('dDb').innerText = data.db;
+
+      document.getElementById('nodeDrawer').classList.add('open');
+      document.getElementById('drawerOverlay').classList.add('open');
+    }
+
+    function closeNodeDrawer() {
+      document.getElementById('nodeDrawer').classList.remove('open');
+      document.getElementById('drawerOverlay').classList.remove('open');
+    }
+
+    // Simulation Walkthrough Data
+    const scenarios = {
+      cart: {
+        name: "Customer: Add Product to Cart & Checkout",
+        steps: [
+          {
+            label: "1. Browse Products",
+            activeBox: 0,
+            boxes: [
+              { title: "Browser View", content: "Customer visits <code>/products</code> and filters category." },
+              { title: "Products.jsx", content: "Compiles query: <code>{ category: 'footwear', page: 1 }</code>" },
+              { title: "backend.js", content: "<code>fetchProducts(query)</code> attaches Bearer token." },
+              { title: "NestJS Controller", content: "<code>@Get()</code> validates pagination DTO." },
+              { title: "PostgreSQL", content: "Returns matching product list." }
+            ],
+            narrative: {
+              step: "Step 1 of 5: Catalog Query",
+              heading: "Isolated Component Query",
+              body: "The modular Products.jsx component fires strictly one API call to load catalog records, avoiding duplicate cascading fetches."
+            }
+          },
+          {
+            label: "2. Add to Cart",
+            activeBox: 1,
+            boxes: [
+              { title: "User Click", content: "User clicks <code>Add to Bag</code> on ProductCard." },
+              { title: "ProductCard.jsx", content: "Optimistically increments bag counter in store." },
+              { title: "backend.js", content: "<code>addToCartApi(productId, 1)</code>" },
+              { title: "NestJS CartController", content: "<code>@Post('items')</code> verifies stock availability." },
+              { title: "PostgreSQL", content: "Inserts into <code>CartItem</code> table." }
+            ],
+            narrative: {
+              step: "Step 2 of 5: Item Addition",
+              heading: "Stock Verification & DB Mutation",
+              body: "NestJS verifies that current product inventory > 0 before creating or updating the customer's CartItem record."
+            }
+          },
+          {
+            label: "3. View Shopping Bag",
+            activeBox: 2,
+            boxes: [
+              { title: "Navigation", content: "Customer opens <code>/cart</code>." },
+              { title: "Cart.jsx", content: "Mount effect loads items, calculations & discount coupon." },
+              { title: "backend.js", content: "<code>fetchCartApi()</code> checks 1-hr session expiration." },
+              { title: "CartController", content: "Aggregates subtotal, taxes, and shipping." },
+              { title: "PostgreSQL", content: "Reads customer's active cart items." }
+            ],
+            narrative: {
+              step: "Step 3 of 5: Bag Calculation",
+              heading: "Fresh Price & Stock Audit",
+              body: "Cart.jsx renders isolated line items and computes accurate price totals without re-triggering unrelated global requests."
+            }
+          },
+          {
+            label: "4. Submit Checkout",
+            activeBox: 3,
+            boxes: [
+              { title: "Form Submit", content: "Customer clicks <code>Place Order</code>." },
+              { title: "Checkout.jsx", content: "Packages shipping address & payment payload." },
+              { title: "backend.js", content: "<code>createOrderApi(payload)</code> via POST." },
+              { title: "OrderController", content: "Initiates ACID transactional checkout." },
+              { title: "PostgreSQL", content: "Locks inventory rows for decrement." }
+            ],
+            narrative: {
+              step: "Step 4 of 5: Atomic Transaction",
+              heading: "Transactional Safety Guard",
+              body: "Prisma executes an ACID transaction: creates Order, inserts OrderItems, decrements product stock, and clears the active shopping cart."
+            }
+          },
+          {
+            label: "5. Invoice Confirmed",
+            activeBox: 4,
+            boxes: [
+              { title: "Receipt View", content: "Browser redirects to <code>/order-success?id=...</code>" },
+              { title: "OrderSuccess.jsx", content: "Mount effect retrieves receipt details." },
+              { title: "backend.js", content: "<code>fetchOrderByIdApi(id)</code>" },
+              { title: "OrderController", content: "Returns finalized invoice object." },
+              { title: "PostgreSQL", content: "Transaction committed with status 'Processing'." }
+            ],
+            narrative: {
+              step: "Step 5 of 5: Order Finalized",
+              heading: "Receipt & Order Status Transition",
+              body: "The customer is greeted with their confirmed order ID and delivery timeline, while the order enters the admin fulfillment queue."
+            }
+          }
+        ]
+      },
+      restock: {
+        name: "Admin: Live Stock Alert & Inventory Restock",
+        steps: [
+          {
+            label: "1. Low-Stock Alert",
+            activeBox: 0,
+            boxes: [
+              { title: "Admin Portal", content: "Admin visits <code>/admin/dashboard</code>." },
+              { title: "Dashboard.jsx", content: "Reads low-stock threshold alerts (<10)." },
+              { title: "backend.js", content: "<code>fetchInventoryApi({ limit: 100 })</code>" },
+              { title: "InventoryController", content: "Aggregates inventory counts by status." },
+              { title: "PostgreSQL", content: "Finds 3 items at critical threshold." }
+            ],
+            narrative: {
+              step: "Step 1 of 4: Dashboard Alert",
+              heading: "Inventory Health Scan",
+              body: "Admin dashboard alerts root administrators immediately when items fall below healthy stock thresholds."
+            }
+          },
+          {
+            label: "2. Open Inventory",
+            activeBox: 1,
+            boxes: [
+              { title: "Navigation", content: "Admin navigates to <code>/admin/inventory</code>." },
+              { title: "Inventory.jsx", content: "Renders status filter tabs and search bar." },
+              { title: "backend.js", content: "<code>fetchInventoryApi({ status: 'LOW_STOCK' })</code>" },
+              { title: "InventoryController", content: "Returns paginated stock records." },
+              { title: "PostgreSQL", content: "Sorts products by stock level ascending." }
+            ],
+            narrative: {
+              step: "Step 2 of 4: Filter by Alert",
+              heading: "Targeted Catalog Audit",
+              body: "Inventory table highlights items with red/amber badges showing exact remaining units."
+            }
+          },
+          {
+            label: "3. Restock Modal",
+            activeBox: 2,
+            boxes: [
+              { title: "Modal Action", content: "Admin clicks <code>Restock</code> and inputs +50 units." },
+              { title: "RestockModal.jsx", content: "Validates positive integer quantity." },
+              { title: "backend.js", content: "<code>updateStockApi(id, currentStock + 50)</code>" },
+              { title: "InventoryController", content: "Receives PATCH request with AuthGuard." },
+              { title: "PostgreSQL", content: "Prepares UPDATE Product SET stock." }
+            ],
+            narrative: {
+              step: "Step 3 of 4: Quantity Mutation",
+              heading: "Instant Restock Submission",
+              body: "PATCH /inventory/:id/stock safely mutates the product inventory level without modifying catalog prices or images."
+            }
+          },
+          {
+            label: "4. Healthy Stock Restored",
+            activeBox: 4,
+            boxes: [
+              { title: "Live Feedback", content: "Status tag immediately switches to 'Healthy'." },
+              { title: "Inventory.jsx", content: "Updates local state; dismisses modal." },
+              { title: "backend.js", content: "Toast notification confirms update." },
+              { title: "InventoryController", content: "Returns updated stock count: 54 units." },
+              { title: "PostgreSQL", content: "Committed. Product visible to customers." }
+            ],
+            narrative: {
+              step: "Step 4 of 4: Stock Refreshed",
+              heading: "Instant Storefront Availability",
+              body: "The product stock count is immediately refreshed across both the admin panel and the customer storefront."
+            }
+          }
+        ]
+      },
+      login: {
+        name: "Auth: Unified Login & 1-Hr JWT Routing",
+        steps: [
+          {
+            label: "1. Enter Email",
+            activeBox: 0,
+            boxes: [
+              { title: "Login Page", content: "User enters email: <code>admin@gmail.com</code>" },
+              { title: "LoginPage.jsx", content: "Single unified login form (zero demo selector clutter)." },
+              { title: "Client State", content: "Prepares credentials: <code>{ email, password }</code>" },
+              { title: "Idle", content: "Awaiting user submission." },
+              { title: "Database", content: "Idle." }
+            ],
+            narrative: {
+              step: "Step 1 of 4: Unified Form",
+              heading: "Clean Minimalist Sign-In",
+              body: "Both Customer and Admin enter credentials on the same sleek login screen without manual portal toggles."
+            }
+          },
+          {
+            label: "2. Submit Login",
+            activeBox: 2,
+            boxes: [
+              { title: "Form Submit", content: "User clicks <code>Sign In</code>." },
+              { title: "LoginPage.jsx", content: "Dispatches <code>loginApi(creds)</code>." },
+              { title: "backend.js", content: "<code>POST /auth/login</code>" },
+              { title: "AuthController", content: "<code>unifiedLogin()</code> automatically detects role." },
+              { title: "PostgreSQL", content: "Verifies password hash with bcrypt." }
+            ],
+            narrative: {
+              step: "Step 2 of 4: Role Detection",
+              heading: "Intelligent Role Routing",
+              body: "backend auth service evaluates if user belongs to admin or customer role, authenticates credentials, and issues role-signed JWT."
+            }
+          },
+          {
+            label: "3. JWT Issued",
+            activeBox: 3,
+            boxes: [
+              { title: "Token Received", content: "1-hour signed JWT saved to localStorage." },
+              { title: "Store Sync", content: "Enforces mutual exclusivity; revokes opposite role." },
+              { title: "backend.js", content: "Attaches Bearer token to all future requests." },
+              { title: "AuthGuard", content: "Grants clearance: <code>ROLE_ADMIN</code>." },
+              { title: "PostgreSQL", content: "Session established." }
+            ],
+            narrative: {
+              step: "Step 3 of 4: Exclusivity Enforcement",
+              heading: "1-Hour Expiration & Role Lock",
+              body: "Token is strictly valid for 1 hour. Active admin sessions are blocked from customer bag/cart mutations to prevent cross-contamination."
+            }
+          },
+          {
+            label: "4. Portal Redirect",
+            activeBox: 1,
+            boxes: [
+              { title: "Redirected", content: "Admin routed to <code>/admin</code> dashboard." },
+              { title: "AdminLayout.jsx", content: "Loads admin topbar, sidebar and clearance badge." },
+              { title: "RequireAdmin", content: "Confirms valid token signature." },
+              { title: "NestJS", content: "Ready for admin management calls." },
+              { title: "PostgreSQL", content: "Full management access granted." }
+            ],
+            narrative: {
+              step: "Step 4 of 4: Protected Navigation",
+              heading: "Role-Guarded Entry",
+              body: "User lands directly in their authorized workspace with zero risk of unauthorized route access."
+            }
+          }
+        ]
+      }
+    };
+
+    let currentScenarioKey = 'cart';
+    let currentStepIndex = 0;
+    let autoPlayTimer = null;
+
+    function loadScenario(scenarioKey) {
+      currentScenarioKey = scenarioKey;
+      currentStepIndex = 0;
+      stopPlay();
+      renderTimeline();
+      updateStageView();
+    }
+
+    function renderTimeline() {
+      const scenario = scenarios[currentScenarioKey];
+      const bar = document.getElementById('timelineBar');
+      bar.innerHTML = '';
+
+      scenario.steps.forEach((step, idx) => {
+        const stepDiv = document.createElement('div');
+        stepDiv.className = `timeline-step ${idx === currentStepIndex ? 'active' : ''}`;
+        stepDiv.onclick = () => jumpToStep(idx);
+
+        stepDiv.innerHTML = `
+          <div class="step-marker">${idx + 1}</div>
+          <div class="step-label">${step.label}</div>
+        `;
+
+        bar.appendChild(stepDiv);
+      });
+    }
+
+    function updateStageView() {
+      const scenario = scenarios[currentScenarioKey];
+      const step = scenario.steps[currentStepIndex];
+
+      // Update boxes
+      for (let i = 0; i < 5; i++) {
+        const boxElem = document.getElementById(`stage-box-${i}`);
+        const contentElem = document.getElementById(`stage-content-${i}`);
+
+        if (i === step.activeBox) {
+          boxElem.classList.add('active-box');
+        } else {
+          boxElem.classList.remove('active-box');
+        }
+
+        const data = step.boxes[i];
+        if (data) {
+          contentElem.innerHTML = `
+            <div><b>${data.title}</b></div>
+            <div>${data.content}</div>
+            ${i === step.activeBox ? '<div class="packet-indicator">● Active Data Flow</div>' : ''}
+          `;
+        }
+      }
+
+      // Update narrative
+      document.getElementById('narrativeBadge').innerText = step.narrative.step;
+      document.getElementById('narrativeHeading').innerText = step.narrative.heading;
+      document.getElementById('narrativeBody').innerText = step.narrative.body;
+
+      // Update timeline active indicator
+      document.querySelectorAll('.timeline-step').forEach((s, idx) => {
+        if (idx === currentStepIndex) s.classList.add('active');
+        else s.classList.remove('active');
+      });
+    }
+
+    function nextStep() {
+      const scenario = scenarios[currentScenarioKey];
+      if (currentStepIndex < scenario.steps.length - 1) {
+        currentStepIndex++;
+      } else {
+        currentStepIndex = 0;
+      }
+      updateStageView();
+    }
+
+    function prevStep() {
+      if (currentStepIndex > 0) {
+        currentStepIndex--;
+        updateStageView();
+      }
+    }
+
+    function jumpToStep(idx) {
+      currentStepIndex = idx;
+      updateStageView();
+    }
+
+    function togglePlay() {
+      if (autoPlayTimer) {
+        stopPlay();
+      } else {
+        startPlay();
+      }
+    }
+
+    function startPlay() {
+      document.getElementById('btnPlay').innerText = "⏸ Pause Simulation";
+      autoPlayTimer = setInterval(() => {
+        nextStep();
+      }, 3000);
+    }
+
+    function stopPlay() {
+      if (autoPlayTimer) {
+        clearInterval(autoPlayTimer);
+        autoPlayTimer = null;
+      }
+      document.getElementById('btnPlay').innerText = "▶ Play Auto-Walkthrough";
+    }
+
+    // Initial Load
+    loadScenario('cart');
+  </script>
+</body>
+</html>

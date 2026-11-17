@@ -2,10 +2,12 @@ import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { json } from 'express';
 import { AppModule } from './app.module.js';
+import { LoggingInterceptor } from './logging.interceptor.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
   app.use(json({ limit: '20mb' }));
+  app.useGlobalInterceptors(new LoggingInterceptor());
   app.enableCors({
     origin: (process.env.FRONTEND_URL ?? 'http://localhost:5173')
       .split(',')

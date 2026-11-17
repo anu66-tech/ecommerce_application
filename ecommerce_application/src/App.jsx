@@ -3,13 +3,31 @@ import { useDispatch } from 'react-redux'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import adminRoutes from './routes/AdminRoutes'
 import customerRoutes from './routes/CustomerRoutes'
-import { initializeStore } from './pages/customer/store.js'
+import LoginPage from './pages/customer/LoginPage.jsx'
+import { initializeStore, useStore } from './pages/customer/store.js'
 import { replaceCart } from './redux/cartSlice.js'
 import { replaceWishlist } from './redux/wishlistSlice.js'
 import { replaceProducts } from './redux/ProductSlice.js'
 import './styles/index.js'
 
+function RootEntryRoute() {
+  const currentUser = useStore('currentUser')
+  const currentAdmin = useStore('currentAdmin')
+
+  if (currentAdmin?.role === 'admin') {
+    return <Navigate to="/admin" replace />
+  }
+
+  if (currentUser?.role === 'customer') {
+    return <Navigate to="/home" replace />
+  }
+
+  return <Navigate to="/login" replace />
+}
+
 const router = createBrowserRouter([
+  { path: '/', element: <RootEntryRoute /> },
+  { path: '/login', element: <LoginPage /> },
   ...customerRoutes,
   ...adminRoutes,
   { path: '*', element: <Navigate to="/" replace /> },

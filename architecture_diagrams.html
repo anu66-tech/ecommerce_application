@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture Diagrams & Node-Link Flowchart Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070a12;
+      --surface: #0e1424;
+      --card: #151d33;
+      --card-hover: #1c2744;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(99, 102, 241, 0.4);
+
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --dim: #64748b;
+
+      --primary: #6366f1;
+      --primary-glow: rgba(99, 102, 241, 0.35);
+
+      --cust: #38bdf8;
+      --cust-bg: rgba(56, 189, 248, 0.12);
+      --adm: #c084fc;
+      --adm-bg: rgba(192, 132, 252, 0.12);
+
+      --get: #10b981;
+      --post: #3b82f6;
+      --put: #f59e0b;
+      --patch: #ec4899;
+      --del: #ef4444;
+
+      --wire-default: rgba(148, 163, 184, 0.2);
+      --wire-active: #6366f1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, #070a12, #0a0f1d);
+      background-size: 24px 24px, 100% 100%;
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Banner Header */
+    header {
+      background: rgba(14, 20, 36, 0.85);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      padding: 20px 32px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #4f46e5, #9333ea);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .tagline {
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    /* Diagram Switcher Tabs */
+    .view-switcher {
+      display: flex;
+      gap: 6px;
+      background: #090e1a;
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .btn-view {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-view:hover {
+      color: #fff;
+    }
+
+    .btn-view.active {
+      background: #1e293b;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .btn-view.active.cust-tab { color: var(--cust); border-bottom: 2px solid var(--cust); }
+    .btn-view.active.adm-tab { color: var(--adm); border-bottom: 2px solid var(--adm); }
+    .btn-view.active.life-tab { color: #34d399; border-bottom: 2px solid #34d399; }
+    .btn-view.active.tree-tab { color: #fbbf24; border-bottom: 2px solid #fbbf24; }
+
+    /* Canvas Area */
+    .diagram-viewport {
+      flex: 1;
+      padding: 32px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Diagram Panels */
+    .diagram-panel {
+      display: none;
+      animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .diagram-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Info Bar */
+    .info-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
+    }
+
+    .info-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .tip-badge {
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Legend Pills */
+    .legend {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Diagram Container Box */
+    .diagram-canvas {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px 32px;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+      overflow-x: auto;
+    }
+
+    /* Multi-Column Diagram Grid */
+    .diagram-columns {
+      display: grid;
+      grid-template-columns: 240px 270px 220px 290px 260px;
+      gap: 36px;
+      position: relative;
+      z-index: 2;
+      min-width: 1350px;
+    }
+
+    .col-header {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--dim);
+      font-weight: 700;
+      margin-bottom: 18px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .col-header .col-num {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+
+    .nodes-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Diagram Node */
+    .node {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+    }
+
+    .node:hover {
+      background: var(--card-hover);
+      border-color: var(--border-accent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .node.active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-glow), 0 8px 20px rgba(0, 0, 0, 0.4);
+      background: #1e2a4a;
+    }
+
+    .node.dimmed {
+      opacity: 0.25;
+      filter: grayscale(40%);
+    }
+
+    .node-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .node-title code {
+      font-family: 'Fira Code', monospace;
+      font-size: 12px;
+      color: #93c5fd;
+    }
+
+    .node-desc {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    /* Special node styling */
+    .node-folder {
+      border-left: 3px solid #f59e0b;
+    }
+    .node-file {
+      border-left: 3px solid var(--cust);
+    }
+    .node-file-adm {
+      border-left: 3px solid var(--adm);
+    }
+    .node-trigger {
+      border-left: 3px solid #ec4899;
+    }
+    .node-api {
+      border-left: 3px solid #10b981;
+    }
+    .node-endpoint {
+      border-left: 3px solid #3b82f6;
+    }
+
+    /* Method & Badge Tags */
+    .method-tag {
+      font-family: 'Fira Code', monospace;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+    .tag-GET { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .tag-POST { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .tag-PUT { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .tag-PATCH { background: rgba(236, 72, 153, 0.2); color: #f472b6; }
+    .tag-DELETE { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+    .trigger-type-tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .t-mount { background: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+    .t-click { background: rgba(236, 72, 153, 0.15); color: #f472b6; }
+    .t-submit { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
+
+    /* SVG Overlay Canvas for Connector Lines */
+    #svgCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .connector-wire {
+      fill: none;
+      stroke: var(--wire-default);
+      stroke-width: 1.5;
+      transition: all 0.25s ease;
+    }
+
+    .connector-wire.active {
+      stroke: var(--primary-light);
+      stroke-width: 2.5;
+      filter: drop-shadow(0 0 6px var(--primary-glow));
+    }
+
+    /* Lifecycle Architecture Box Layout */
+    .lifecycle-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .flow-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      position: relative;
+    }
+
+    .flow-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+    }
+
+    .flow-card-num {
+      position: absolute;
+      top: -12px;
+      left: 18px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    .flow-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-top: 6px;
+      margin-bottom: 8px;
+    }
+
+    .flow-card p {
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .flow-card .chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .flow-card .chip {
+      font-family: 'Fira Code', monospace;
+      font-size: 11px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: #cbd5e1;
+      border: 1px solid var(--border);
+    }
+
+    /* Tree Diagram Visuals */
+    .folder-tree-diagram {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+
+    .tree-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .tree-box-title {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tree-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-family: 'Fira Code', monospace;
+      color: #cbd5e1;
+      margin-bottom: 4px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .tree-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tree-item-apis {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Sticky Navigation & Controls -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <h1>E-Commerce System Diagram Visualizer</h1>
+        <div class="tagline">Interactive Flowchart: Modules ➔ Files ➔ Triggers ➔ APIs ➔ Endpoints</div>
+      </div>
+    </div>
+
+    <!-- Diagram Mode Switcher -->
+    <div class="view-switcher">
+      <button class="btn-view cust-tab active" onclick="setDiagramMode('customer')">
+        🛍️ Customer Flowchart
+      </button>
+      <button class="btn-view adm-tab" onclick="setDiagramMode('admin')">
+        🛡️ Admin Flowchart
+      </button>
+      <button class="btn-view life-tab" onclick="setDiagramMode('lifecycle')">
+        🔄 Request & Auth Lifecycle
+      </button>
+      <button class="btn-view tree-tab" onclick="setDiagramMode('tree')">
+        📁 Complete Directory Map
+      </button>
+    </div>
+  </header>
+
+  <main class="diagram-viewport">
+
+    <!-- ==============================================
+         MODE 1: CUSTOMER STOREFRONT FLOWCHART
+         ============================================== -->
+    <section id="panel-customer" class="diagram-panel active">
+      <div class="info-bar">
+        <div class="info-bar-left">
+          <span class="tip-badge">Interactive Node Graph</span>
+          <span>Click on any node to highlight its complete path across the 5 architectural layers.</span>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><span class="dot" style="background:#f59e0b"></span> Folder</div>
+          <div class="legend-item"><span class="dot" style="background:var(--cust)"></span> Source File</div>
+          <div class="legend-item"><span class="dot" style="background:#ec4899"></span> Trigger</div>
+          <div class="legend-item"><span class="dot" style="background:#10b981"></span> backend.js</div>
+          <div class="legend-item"><span class="dot" style="background:#3b82f6"></span> NestJS Route</div>
+        </div>
+      </div>
+
+      <div class="diagram-canvas">
+        <div class="diagram-columns">
+          <!-- Col 1: Folders -->
+          <div class="col-wrap">
+            <div class="col-header"><span class="col-num">1</span> Module Folder</div>
+            <div class="nodes-stack">
+              <div class="node node-folder" data-flow="cust-auth" onclick="highlightFlow('cust-auth')">
+                <div class="node-title">📁 Auth/</div>
+                <div class="node-desc">Unified credentials & session</div>
+              </div>
+              <div class="node node-folder" data-flow="cust-home" onclick="highlightFlow('cust-home')">
+                <div class="node-title">📁 Home/</div>
+                <div class="node-desc">Hero showcase & carousels</div>
+              </div>
+              <div class="node node-folder" data-flow="cust-prods" onclick="highlightFlow('cust-prods')">
+                <div class="node-title">📁 Products/</div>
+                <div class="node-desc">Search, category filter, grid</div>
+              </div>
+              <div class="node node-folder" data-flow="cust-pdet" onclick="highlightFlow('cust-pdet')">
+                <div class="node-title">📁 ProductDetail/</div>
+                <div class="node-desc">Specs, gallery, cart additions</div>
+              </div>
+              <div class="node node-folder" data-flow="cust-wish" onclick="highlightFlow('cust-wish')">
+                <div class="node-title">📁 Wishlist/</div>
+                <div class="node-desc">Saved items & move to cart</div>
+              </div>
+              <div class="node node-folder" data-flow="cust-cart" onclick="highlightFlow('cust-cart')">
+                <div class="node-title">📁 Cart/</div>
+                <div class="node-desc">Shopping bag & line items</div>
+              </div>
+              <div class="node node-folder" data-flow="cust-chk" onclick="highlightFlow('cust-chk')">
+                <div class="node-title">📁 Checkout/</div>
+                <div class="node-desc">Shipping & payment checkout</div>
+              </div>
+              <div class="node node-folder" data-flow="cust-ord" onclick="highlightFlow('cust-ord')">
+                <div class="node-title">📁 Orders/</div>
+                <div class="node-desc">Purchase history & invoice</div>
+              </div>
+              <div class="node node-folder" data-flow="cust-acc" onclick="highlightFlow('cust-acc')">
+                <div class="node-title">📁 Account/</div>
+                <div class="node-desc">Profile, order stats, logout</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Col 2: Source Files -->
+          <div class="col-wrap">
+            <div class="col-header"><span class="col-num">2</span> Target File</div>
+            <div class="nodes-stack">
+              <div class="node node-file" data-flow="cust-auth" onclick="highlightFlow('cust-auth')">
+                <div class="node-title"><code>LoginPage.jsx</code></div>
+                <div class="node-desc">Form state & auto-detect role</div>
+              </div>
+              <div class="node node-file" data-flow="cust-home" onclick="highlightFlow('cust-home')">
+                <div class="node-title"><code>Home.jsx</code></div>
+                <div class="node-desc">Showcase products row</div>
+              </div>
+              <div class="node node-file" data-flow="cust-prods" onclick="highlightFlow('cust-prods')">
+                <div class="node-title"><code>Products.jsx</code></div>
+                <div class="node-desc">Catalog query & pagination</div>
+              </div>
+              <div class="node node-file" data-flow="cust-prods" onclick="highlightFlow('cust-prods')">
+                <div class="node-title"><code>ProductCard.jsx</code></div>
+                <div class="node-desc">Heart toggle & quick add bag</div>
+              </div>
+              <div class="node node-file" data-flow="cust-pdet" onclick="highlightFlow('cust-pdet')">
+                <div class="node-title"><code>ProductDetail.jsx</code></div>
+                <div class="node-desc">Full product spec view</div>
+              </div>
+              <div class="node node-file" data-flow="cust-wish" onclick="highlightFlow('cust-wish')">
+                <div class="node-title"><code>Wishlist.jsx</code></div>
+                <div class="node-desc">Saved items grid</div>
+              </div>
+              <div class="node node-file" data-flow="cust-cart" onclick="highlightFlow('cust-cart')">
+                <div class="node-title"><code>Cart.jsx</code></div>
+                <div class="node-desc">Bag items list & price calc</div>
+              </div>
+              <div class="node node-file" data-flow="cust-chk" onclick="highlightFlow('cust-chk')">
+                <div class="node-title"><code>Checkout.jsx</code></div>
+                <div class="node-desc">Multi-step order placement</div>
+              </div>
+              <div class="node node-file" data-flow="cust-ord" onclick="highlightFlow('cust-ord')">
+                <div class="node-title"><code>Orders.jsx</code></div>
+                <div class="node-desc">History table & receipts</div>
+              </div>
+              <div class="node node-file" data-flow="cust-acc" onclick="highlightFlow('cust-acc')">
+                <div class="node-title"><code>Account.jsx</code></div>
+                <div class="node-desc">Customer profile & sign out</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Col 3: Trigger Mechanism -->
+          <div class="col-wrap">
+            <div class="col-header"><span class="col-num">3</span> Trigger Mechanism</div>
+            <div class="nodes-stack">
+              <div class="node node-trigger" data-flow="cust-auth" onclick="highlightFlow('cust-auth')">
+                <div class="node-title"><span class="trigger-type-tag t-submit">onSubmit</span></div>
+                <div class="node-desc">Form submission with credentials</div>
+              </div>
+              <div class="node node-trigger" data-flow="cust-home" onclick="highlightFlow('cust-home')">
+                <div class="node-title"><span class="trigger-type-tag t-mount">useEffect Mount</span></div>
+                <div class="node-desc">Runs strictly once on load</div>
+              </div>
+              <div class="node node-trigger" data-flow="cust-prods" onclick="highlightFlow('cust-prods')">
+                <div class="node-title"><span class="trigger-type-tag t-mount">useEffect Query</span></div>
+                <div class="node-desc">Fired when URL params change</div>
+              </div>
+              <div class="node node-trigger" data-flow="cust-pdet" onclick="highlightFlow('cust-pdet')">
+                <div class="node-title"><span class="trigger-type-tag t-mount">useEffect [id]</span></div>
+                <div class="node-desc">Triggered when product ID opens</div>
+              </div>
+              <div class="node node-trigger" data-flow="cust-wish" onclick="highlightFlow('cust-wish')">
+                <div class="node-title"><span class="trigger-type-tag t-mount">useEffect Mount</span></div>
+                <div class="node-desc">Loads wishlist on page mount</div>
+              </div>
+              <div class="node node-trigger" data-flow="cust-cart" onclick="highlightFlow('cust-cart')">
+                <div class="node-title"><span class="trigger-type-tag t-click">onClick +/- Qty</span></div>
+                <div class="node-desc">User adjusts item count</div>
+              </div>
+              <div class="node node-trigger" data-flow="cust-chk" onclick="highlightFlow('cust-chk')">
+                <div class="node-title"><span class="trigger-type-tag t-submit">onSubmit</span></div>
+                <div class="node-desc">Place order checkout button</div>
+              </div>
+              <div class="node node-trigger" data-flow="cust-ord" onclick="highlightFlow('cust-ord')">
+                <div class="node-title"><span class="trigger-type-tag t-mount">useEffect Mount</span></div>
+                <div class="node-desc">Loads order history list</div>
+              </div>
+              <div class="node node-trigger" data-flow="cust-acc" onclick="highlightFlow('cust-acc')">
+                <div class="node-title"><span class="trigger-type-tag t-click">onClick Sign Out</span></div>
+                <div class="node-desc">User logs out of account</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Col 4: API Service Client -->
+          <div class="col-wrap">
+            <div class="col-header"><span class="col-num">4</span> backend.js Function</div>
+            <div class="nodes-stack">
+              <div class="node node-api" data-flow="cust-auth" onclick="highlightFlow('cust-auth')">
+                <div class="node-title"><code>loginApi(creds)</code></div>
+                <div class="node-desc">Attaches session token</div>
+              </div>
+              <div class="node node-api" data-flow="cust-home" onclick="highlightFlow('cust-home')">
+                <div class="node-title"><code>fetchProducts(query)</code></div>
+                <div class="node-desc">Fetches showcase batch</div>
+              </div>
+              <div class="node node-api" data-flow="cust-prods" onclick="highlightFlow('cust-prods')">
+                <div class="node-title"><code>fetchProducts(filter)</code></div>
+                <div class="node-desc">Catalog query handler</div>
+              </div>
+              <div class="node node-api" data-flow="cust-pdet" onclick="highlightFlow('cust-pdet')">
+                <div class="node-title"><code>fetchProductById(id)</code></div>
+                <div class="node-desc">Detailed product lookup</div>
+              </div>
+              <div class="node node-api" data-flow="cust-wish" onclick="highlightFlow('cust-wish')">
+                <div class="node-title"><code>fetchWishlistApi()</code></div>
+                <div class="node-desc">Queries saved customer items</div>
+              </div>
+              <div class="node node-api" data-flow="cust-cart" onclick="highlightFlow('cust-cart')">
+                <div class="node-title"><code>updateCartItemQuantity()</code></div>
+                <div class="node-desc">Updates item line quantity</div>
+              </div>
+              <div class="node node-api" data-flow="cust-chk" onclick="highlightFlow('cust-chk')">
+                <div class="node-title"><code>createOrderApi(order)</code></div>
+                <div class="node-desc">Submits order transaction</div>
+              </div>
+              <div class="node node-api" data-flow="cust-ord" onclick="highlightFlow('cust-ord')">
+                <div class="node-title"><code>fetchOrdersApi()</code></div>
+                <div class="node-desc">Fetches user order array</div>
+              </div>
+              <div class="node node-api" data-flow="cust-acc" onclick="highlightFlow('cust-acc')">
+                <div class="node-title"><code>logoutApi('customer')</code></div>
+                <div class="node-desc">Revokes customer token</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Col 5: NestJS Endpoint -->
+          <div class="col-wrap">
+            <div class="col-header"><span class="col-num">5</span> NestJS REST Route</div>
+            <div class="nodes-stack">
+              <div class="node node-endpoint" data-flow="cust-auth" onclick="highlightFlow('cust-auth')">
+                <div class="node-title"><span class="method-tag tag-POST">POST</span> <code>/auth/login</code></div>
+                <div class="node-desc">Generates 1-hour JWT token</div>
+              </div>
+              <div class="node node-endpoint" data-flow="cust-home" onclick="highlightFlow('cust-home')">
+                <div class="node-title"><span class="method-tag tag-GET">GET</span> <code>/products?limit=50</code></div>
+                <div class="node-desc">Showcase product list</div>
+              </div>
+              <div class="node node-endpoint" data-flow="cust-prods" onclick="highlightFlow('cust-prods')">
+                <div class="node-title"><span class="method-tag tag-GET">GET</span> <code>/products?...</code></div>
+                <div class="node-desc">Filtered catalog response</div>
+              </div>
+              <div class="node node-endpoint" data-flow="cust-pdet" onclick="highlightFlow('cust-pdet')">
+                <div class="node-title"><span class="method-tag tag-GET">GET</span> <code>/products/:id</code></div>
+                <div class="node-desc">Single entity record</div>
+              </div>
+              <div class="node node-endpoint" data-flow="cust-wish" onclick="highlightFlow('cust-wish')">
+                <div class="node-title"><span class="method-tag tag-GET">GET</span> <code>/wishlist</code></div>
+                <div class="node-desc">Customer wishlist items</div>
+              </div>
+              <div class="node node-endpoint" data-flow="cust-cart" onclick="highlightFlow('cust-cart')">
+                <div class="node-title"><span class="method-tag tag-PATCH">PATCH</span> <code>/cart/items/:id</code></div>
+                <div class="node-desc">Mutates line item count</div>
+              </div>
+              <div class="node node-endpoint" data-flow="cust-chk" onclick="highlightFlow('cust-chk')">
+                <div class="node-title"><span class="method-tag tag-POST">POST</span> <code>/orders</code></div>
+                <div class="node-desc">Atomic checkout transaction</div>
+              </div>
+              <div class="node node-endpoint" data-flow="cust-ord" onclick="highlightFlow('cust-ord')">
+                <div class="node-title"><span class="method-tag tag-GET">GET</span> <code>/orders</code></div>
+                <div class="node-desc">Customer purchase history</div>
+              </div>
+              <div class="node node-endpoint" data-flow="cust-acc" onclick="highlightFlow('cust-acc')">
+                <div class="node-title"><span class="method-tag tag-POST">POST</span> <code>/auth/logout</code></div>
+                <div class="node-desc">Invalidates active session</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         MODE 2: ADMIN BACK-OFFICE FLOWCHART
+         ============================================== -->
+    <section id="panel-admin" class="diagram-panel">
+      <div class="info-bar">
+        <div class="info-bar-left">
+          <span class="tip-badge" style="background:rgba(192,132,252,0.15);color:var(--adm)">Admin Architecture</span>
+          <span>Click on any admin node to trace its complete CRUD mutation path.</span>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><span class="dot" style="background:#f59e0b"></span> Admin Module</div>
+          <div class="legend-item"><span class="dot" style="background:var(--adm)"></span> Admin View / Modal</div>
+          <div class="legend-item"><span class="dot" style="background:#ec4899"></span> Trigger Event</div>
+          <div class="legend-item"><span class="dot" style="background:#10b981"></span> backend.js Call</div>
+          <div class="legend-item"><span class="dot" style="background:#3b82f6"></span> NestJS Endpoint</div>
+        </div>
+      </div>
+
+      <div class="diagram-canvas">
+        <div class="diagram-columns">
+          <!-- Col 1: Admin Folders -->
+          <div class="col-wrap">
+            <div class="col-header"><span class="col-num">1</span> Admin Folder</div>
+            <div class="nodes-stack">
+              <div class="node node-folder" data-flow="adm-dash" onclick="highlightFlow('adm-dash')">
+                <div class="node-title">📁 Dashboard/</div>
+                <div class="node-desc">Sales metrics & alerts</div>
+              </div>
+              <div class="node node-folder" data-flow="adm-prod" onclick="highlightFlow('adm-prod')">
+                <div class="node-title">📁 Products/</div>
+                <div class="node-desc">Catalog CRUD & modals</div>
+              </div>
+              <div class="node node-folder" data-flow="adm-cats" onclick="highlightFlow('adm-cats')">
+                <div class="node-title">📁 Categories/</div>
+                <div class="node-desc">Taxonomy management</div>
+              </div>
+              <div class="node node-folder" data-flow="adm-inv" onclick="highlightFlow('adm-inv')">
+                <div class="node-title">📁 Inventory/</div>
+                <div class="node-desc">Stock thresholds & restock</div>
+              </div>
+              <div class="node node-folder" data-flow="adm-ord" onclick="highlightFlow('adm-ord')">
+                <div class="node-title">📁 Orders/</div>
+                <div class="node-desc">Fulfillment pipeline</div>
+              </div>
+              <div class="node node-folder" data-flow="adm-acc" onclick="highlightFlow('adm-acc')">
+                <div class="node-title">📁 Account/</div>
+                <div class="node-desc">Root clearance & sign out</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Col 2: Admin Files & Modals -->
+          <div class="col-wrap">
+            <div class="col-header"><span class="col-num">2</span> Target File / Modal</div>
+            <div class="nodes-stack">
+              <div class="node node-file-adm" data-flow="adm-dash" onclick="highlightFlow('adm-dash')">
+                <div class="node-title"><code>Dashboard.jsx</code></div>
+                <div class="node-desc">Executive overview</div>
+              </div>
+              <div class="node node-file-adm" data-flow="adm-prod" onclick="highlightFlow('adm-prod')">
+                <div class="node-title"><code>ProductModal.jsx</code></div>
+                <div class="node-desc">Create / Edit dialog form</div>
+              </div>
+              <div class="node node-file-adm" data-flow="adm-cats" onclick="highlightFlow('adm-cats')">
+                <div class="node-title"><code>CategoryModal.jsx</code></div>
+                <div class="node-desc">Taxonomy dialog editor</div>
+              </div>
+              <div class="node node-file-adm" data-flow="adm-inv" onclick="highlightFlow('adm-inv')">
+                <div class="node-title"><code>RestockModal.jsx</code></div>
+                <div class="node-desc">Bulk inventory restock modal</div>
+              </div>
+              <div class="node node-file-adm" data-flow="adm-ord" onclick="highlightFlow('adm-ord')">
+                <div class="node-title"><code>Orders.jsx</code></div>
+                <div class="node-desc">Status transition table</div>
+              </div>
+              <div class="node node-file-adm" data-flow="adm-acc" onclick="highlightFlow('adm-acc')">
+                <div class="node-title"><code>Account.jsx</code></div>
+                <div class="node-desc">Security & session overview</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Col 3: Admin Triggers -->
+          <div class="col-wrap">
+            <div class="col-header"><span class="col-num">3</span> Trigger Event</div>
+            <div class="nodes-stack">
+              <div class="node node-trigger" data-flow="adm-dash" onclick="highlightFlow('adm-dash')">
+                <div class="node-title"><span class="trigger-type-tag t-mount">useEffect Mount</span></div>
+                <div class="node-desc">Loads live inventory stats</div>
+              </div>
+              <div class="node node-trigger" data-flow="adm-prod" onclick="highlightFlow('adm-prod')">
+                <div class="node-title"><span class="trigger-type-tag t-submit">Modal onSubmit</span></div>
+                <div class="node-desc">Saves created / updated item</div>
+              </div>
+              <div class="node node-trigger" data-flow="adm-cats" onclick="highlightFlow('adm-cats')">
+                <div class="node-title"><span class="trigger-type-tag t-submit">Modal onSubmit</span></div>
+                <div class="node-desc">Saves category entity</div>
+              </div>
+              <div class="node node-trigger" data-flow="adm-inv" onclick="highlightFlow('adm-inv')">
+                <div class="node-title"><span class="trigger-type-tag t-submit">Modal Restock</span></div>
+                <div class="node-desc">Submits restock increment</div>
+              </div>
+              <div class="node node-trigger" data-flow="adm-ord" onclick="highlightFlow('adm-ord')">
+                <div class="node-title"><span class="trigger-type-tag t-click">Status onChange</span></div>
+                <div class="node-desc">Admin updates status dropdown</div>
+              </div>
+              <div class="node node-trigger" data-flow="adm-acc" onclick="highlightFlow('adm-acc')">
+                <div class="node-title"><span class="trigger-type-tag t-click">onClick Sign Out</span></div>
+                <div class="node-desc">Terminates admin session</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Col 4: Admin API Service -->
+          <div class="col-wrap">
+            <div class="col-header"><span class="col-num">4</span> backend.js Function</div>
+            <div class="nodes-stack">
+              <div class="node node-api" data-flow="adm-dash" onclick="highlightFlow('adm-dash')">
+                <div class="node-title"><code>fetchInventoryApi()</code></div>
+                <div class="node-desc">Gathers critical low-stock</div>
+              </div>
+              <div class="node node-api" data-flow="adm-prod" onclick="highlightFlow('adm-prod')">
+                <div class="node-title"><code>createProductApi()</code></div>
+                <div class="node-desc">or updateProductApi()</div>
+              </div>
+              <div class="node node-api" data-flow="adm-cats" onclick="highlightFlow('adm-cats')">
+                <div class="node-title"><code>createCategoryApi()</code></div>
+                <div class="node-desc">or updateCategoryApi()</div>
+              </div>
+              <div class="node node-api" data-flow="adm-inv" onclick="highlightFlow('adm-inv')">
+                <div class="node-title"><code>updateStockApi()</code></div>
+                <div class="node-desc">Persists new quantity</div>
+              </div>
+              <div class="node node-api" data-flow="adm-ord" onclick="highlightFlow('adm-ord')">
+                <div class="node-title"><code>updateOrderStatusApi()</code></div>
+                <div class="node-desc">Transitions order state</div>
+              </div>
+              <div class="node node-api" data-flow="adm-acc" onclick="highlightFlow('adm-acc')">
+                <div class="node-title"><code>logoutApi('admin')</code></div>
+                <div class="node-desc">Revokes administrator token</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Col 5: Admin Endpoint -->
+          <div class="col-wrap">
+            <div class="col-header"><span class="col-num">5</span> NestJS REST Endpoint</div>
+            <div class="nodes-stack">
+              <div class="node node-endpoint" data-flow="adm-dash" onclick="highlightFlow('adm-dash')">
+                <div class="node-title"><span class="method-tag tag-GET">GET</span> <code>/inventory?limit=100</code></div>
+                <div class="node-desc">Alerts summary metrics</div>
+              </div>
+              <div class="node node-endpoint" data-flow="adm-prod" onclick="highlightFlow('adm-prod')">
+                <div class="node-title"><span class="method-tag tag-POST">POST</span> <code>/products</code></div>
+                <div class="node-desc">or PUT /products/:id</div>
+              </div>
+              <div class="node node-endpoint" data-flow="adm-cats" onclick="highlightFlow('adm-cats')">
+                <div class="node-title"><span class="method-tag tag-POST">POST</span> <code>/categories</code></div>
+                <div class="node-desc">or PUT /categories/:id</div>
+              </div>
+              <div class="node node-endpoint" data-flow="adm-inv" onclick="highlightFlow('adm-inv')">
+                <div class="node-title"><span class="method-tag tag-PATCH">PATCH</span> <code>/inventory/:id/stock</code></div>
+                <div class="node-desc">Direct stock level update</div>
+              </div>
+              <div class="node node-endpoint" data-flow="adm-ord" onclick="highlightFlow('adm-ord')">
+                <div class="node-title"><span class="method-tag tag-PATCH">PATCH</span> <code>/orders/:id/status</code></div>
+                <div class="node-desc">Processing ➔ Shipped ➔ Delivered</div>
+              </div>
+              <div class="node node-endpoint" data-flow="adm-acc" onclick="highlightFlow('adm-acc')">
+                <div class="node-title"><span class="method-tag tag-POST">POST</span> <code>/auth/logout</code></div>
+                <div class="node-desc">Clears admin token</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         MODE 3: REQUEST & AUTH LIFECYCLE
+         ============================================== -->
+    <section id="panel-lifecycle" class="diagram-panel">
+      <div class="info-bar">
+        <div class="info-bar-left">
+          <span class="tip-badge" style="background:rgba(52,211,153,0.15);color:#34d399">End-to-End Pipeline</span>
+          <span>Architectural journey of every HTTP request, from React interaction to PostgreSQL ACID commit.</span>
+        </div>
+      </div>
+
+      <div class="lifecycle-wrapper">
+        <div class="flow-row">
+          <div class="flow-card">
+            <div class="flow-card-num">1</div>
+            <h3>User Action / Navigation</h3>
+            <p>Customer clicks an item or navigates via React Router. The target modular page mounts.</p>
+            <div class="chip-list">
+              <span class="chip">React Router v6</span>
+              <span class="chip">Custom Hook</span>
+            </div>
+          </div>
+
+          <div class="flow-card">
+            <div class="flow-card-num">2</div>
+            <h3>Role Route Guard</h3>
+            <p><code>RequireCustomer</code> or <code>RequireAdmin</code> verifies the JWT role payload. Exclusivity enforced.</p>
+            <div class="chip-list">
+              <span class="chip">RequireCustomer</span>
+              <span class="chip">RequireAdmin</span>
+            </div>
+          </div>
+
+          <div class="flow-card">
+            <div class="flow-card-num">3</div>
+            <h3>Native Fetch Interceptor</h3>
+            <p><code>requestApi()</code> in <code>backend.js</code> injects <code>Authorization: Bearer &lt;token&gt;</code> and checks 1-hr expiry.</p>
+            <div class="chip-list">
+              <span class="chip">Bearer Token</span>
+              <span class="chip">401 Auto-Logout</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-row">
+          <div class="flow-card">
+            <div class="flow-card-num">4</div>
+            <h3>NestJS Controller & DTO</h3>
+            <p>Incoming request validated via class-validator DTOs. Invalid parameters immediately returned with 400 Bad Request.</p>
+            <div class="chip-list">
+              <span class="chip">ValidationPipe</span>
+              <span class="chip">JWT Strategy</span>
+            </div>
+          </div>
+
+          <div class="flow-card">
+            <div class="flow-card-num">5</div>
+            <h3>Service Business Logic</h3>
+            <p>Pure TypeScript business logic validates inventory stock levels, password hashes (bcrypt), and order calculations.</p>
+            <div class="chip-list">
+              <span class="chip">Prisma ORM</span>
+              <span class="chip">Bcrypt Hash</span>
+            </div>
+          </div>
+
+          <div class="flow-card">
+            <div class="flow-card-num">6</div>
+            <h3>PostgreSQL ACID Transaction</h3>
+            <p>Atomic transaction committed to PostgreSQL database (port 5432). Synchronous response delivered back to frontend.</p>
+            <div class="chip-list">
+              <span class="chip">ACID Compliant</span>
+              <span class="chip">PostgreSQL</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         MODE 4: DIRECTORY ARCHITECTURE MAP
+         ============================================== -->
+    <section id="panel-tree" class="diagram-panel">
+      <div class="info-bar">
+        <div class="info-bar-left">
+          <span class="tip-badge" style="background:rgba(251,191,36,0.15);color:#fbbf24">Target Folder Schema</span>
+          <span>Decomposed folder structure separating Customer Storefront, Admin Back-Office, and Shared Primitives.</span>
+        </div>
+      </div>
+
+      <div class="folder-tree-diagram">
+        <!-- Box 1: Customer Modules -->
+        <div class="tree-box">
+          <div class="tree-box-title" style="color:var(--cust)">
+            <span>🛍️</span> Customer Modules (src/pages/customer/)
+          </div>
+          <div class="tree-item"><span>📁 Auth/</span> <span class="tree-item-apis">LoginPage.jsx (1 API)</span></div>
+          <div class="tree-item"><span>📁 Home/</span> <span class="tree-item-apis">Home.jsx, HomeSection.jsx (1 API)</span></div>
+          <div class="tree-item"><span>📁 Products/</span> <span class="tree-item-apis">Products, Card, Grid (3 APIs)</span></div>
+          <div class="tree-item"><span>📁 ProductDetail/</span> <span class="tree-item-apis">ProductDetail.jsx (3 APIs)</span></div>
+          <div class="tree-item"><span>📁 Wishlist/</span> <span class="tree-item-apis">Wishlist.jsx (2 APIs)</span></div>
+          <div class="tree-item"><span>📁 Cart/</span> <span class="tree-item-apis">Cart, AddToBagDialog (4 APIs)</span></div>
+          <div class="tree-item"><span>📁 Checkout/</span> <span class="tree-item-apis">Checkout, BuyNowDialog (1 API)</span></div>
+          <div class="tree-item"><span>📁 Orders/</span> <span class="tree-item-apis">Orders, OrderSuccess (2 APIs)</span></div>
+          <div class="tree-item"><span>📁 Account/</span> <span class="tree-item-apis">Account.jsx (2 APIs)</span></div>
+          <div class="tree-item"><span>📄 CustomerLayout.jsx</span> <span class="tree-item-apis">Header + Sidebar Shell</span></div>
+        </div>
+
+        <!-- Box 2: Admin Modules -->
+        <div class="tree-box">
+          <div class="tree-box-title" style="color:var(--adm)">
+            <span>🛡️</span> Admin Modules (src/pages/admin/)
+          </div>
+          <div class="tree-item"><span>📁 Dashboard/</span> <span class="tree-item-apis">Dashboard.jsx (1 API)</span></div>
+          <div class="tree-item"><span>📁 Products/</span> <span class="tree-item-apis">Products, ProductModal, DeleteModal (4 APIs)</span></div>
+          <div class="tree-item"><span>📁 Categories/</span> <span class="tree-item-apis">Categories, CategoryModal (4 APIs)</span></div>
+          <div class="tree-item"><span>📁 Inventory/</span> <span class="tree-item-apis">Inventory, RestockModal (2 APIs)</span></div>
+          <div class="tree-item"><span>📁 Orders/</span> <span class="tree-item-apis">Orders.jsx (2 APIs)</span></div>
+          <div class="tree-item"><span>📁 Account/</span> <span class="tree-item-apis">Account.jsx (2 APIs)</span></div>
+          <div class="tree-item"><span>📄 AdminLayout.jsx</span> <span class="tree-item-apis">Admin TopBar + Sidebar Shell</span></div>
+        </div>
+
+        <!-- Box 3: Shared Infrastructure -->
+        <div class="tree-box">
+          <div class="tree-box-title" style="color:#10b981">
+            <span>⚙️</span> Shared Layer (src/api & components)
+          </div>
+          <div class="tree-item"><span>📄 api/backend.js</span> <span class="tree-item-apis">Fetch Interceptor & Endpoints</span></div>
+          <div class="tree-item"><span>📄 components/common/Icon.jsx</span> <span class="tree-item-apis">SVG Renderer</span></div>
+          <div class="tree-item"><span>📄 components/common/ConfirmationDialog.jsx</span> <span class="tree-item-apis">Modal</span></div>
+          <div class="tree-item"><span>📄 components/layout/Sidebar.jsx</span> <span class="tree-item-apis">Role-Aware Sidebar</span></div>
+          <div class="tree-item"><span>📄 components/layout/CustomerHeader.jsx</span> <span class="tree-item-apis">Storefront Nav</span></div>
+          <div class="tree-item"><span>📄 routes/CustomerRoutes/index.jsx</span> <span class="tree-item-apis">RequireCustomer</span></div>
+          <div class="tree-item"><span>📄 routes/AdminRoutes/index.jsx</span> <span class="tree-item-apis">RequireAdmin</span></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Tab switching
+    function setDiagramMode(mode) {
+      document.querySelectorAll('.btn-view').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.diagram-panel').forEach(panel => panel.classList.remove('active'));
+
+      const activeBtn = document.querySelector(`.btn-view.${mode.substring(0,4)}-tab`) || event.currentTarget;
+      activeBtn.classList.add('active');
+
+      const activePanel = document.getElementById(`panel-${mode}`);
+      if (activePanel) activePanel.classList.add('active');
+
+      // Reset any highlighted flows
+      resetHighlight();
+    }
+
+    // Interactive Flow Highlighter
+    let currentFlow = null;
+    function highlightFlow(flowId) {
+      const activePanel = document.querySelector('.diagram-panel.active');
+      if (!activePanel) return;
+
+      const nodes = activePanel.querySelectorAll('.node');
+
+      // Toggle off if clicking the already active flow
+      if (currentFlow === flowId) {
+        resetHighlight();
+        return;
+      }
+
+      currentFlow = flowId;
+
+      nodes.forEach(node => {
+        if (node.getAttribute('data-flow') === flowId) {
+          node.classList.add('active');
+          node.classList.remove('dimmed');
+        } else {
+          node.classList.remove('active');
+          node.classList.add('dimmed');
+        }
+      });
+    }
+
+    function resetHighlight() {
+      currentFlow = null;
+      document.querySelectorAll('.node').forEach(node => {
+        node.classList.remove('active', 'dimmed');
+      });
+    }
+  </script>
+</body>
+</html>

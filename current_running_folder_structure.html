@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Current Running Folder Structure & Monolithic Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #070a13;
+      --surface: #0e1424;
+      --card: #151d33;
+      --card-hover: #1c2744;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(99, 102, 241, 0.4);
+
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --dim: #64748b;
+
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --primary-glow: rgba(99, 102, 241, 0.35);
+
+      --cust: #38bdf8;
+      --adm: #c084fc;
+      --warn: #f59e0b;
+      --err: #ef4444;
+      --success: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, #070a13, #0a1122);
+      background-size: 24px 24px, 100% 100%;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: rgba(14, 20, 36, 0.88);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+      padding: 16px 32px;
+      position: sticky;
+      top: 0;
+      z-index: 90;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.4);
+    }
+
+    h1 {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .tagline {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .view-switcher {
+      display: flex;
+      gap: 6px;
+      background: #090e1a;
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .btn-view {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .btn-view:hover {
+      color: #fff;
+    }
+
+    .btn-view.active {
+      background: #1e293b;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .btn-view.active.t1 { color: #f59e0b; border-bottom: 2px solid #f59e0b; }
+    .btn-view.active.t2 { color: var(--cust); border-bottom: 2px solid var(--cust); }
+    .btn-view.active.t3 { color: var(--adm); border-bottom: 2px solid var(--adm); }
+    .btn-view.active.t4 { color: #10b981; border-bottom: 2px solid #10b981; }
+
+    .viewport {
+      flex: 1;
+      padding: 24px 32px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .diagram-panel {
+      display: none;
+      animation: fadeIn 0.25s ease-out;
+    }
+    .diagram-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .warning-banner {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(239, 68, 68, 0.12));
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .warning-icon {
+      font-size: 26px;
+    }
+
+    .warning-text h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fbbf24;
+    }
+
+    .warning-text p {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .canvas-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      overflow-x: auto;
+      min-height: 520px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .mermaid {
+      width: 100%;
+      text-align: center;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+
+    .stat-card-title {
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--dim);
+      font-weight: 700;
+    }
+
+    .stat-card-num {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      margin: 4px 0;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .stat-card-sub {
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Sticky Navigation -->
+  <header>
+    <div class="brand-group">
+      <div class="brand-icon">📂</div>
+      <div>
+        <h1>Current Running Folder Structure & Monolithic Architecture</h1>
+        <div class="tagline">Visual map of how code is currently packaged and executing inside Storefront.jsx & AdminPanel.jsx</div>
+      </div>
+    </div>
+
+    <!-- Mode Selector Tabs -->
+    <div class="view-switcher">
+      <button class="btn-view t1 active" onclick="switchTab('t1')">
+        ⚠️ 1. Current Architecture (The "Monoliths")
+      </button>
+      <button class="btn-view t2" onclick="switchTab('t2')">
+        🛍️ 2. Current Customer Flow Wiring
+      </button>
+      <button class="btn-view t3" onclick="switchTab('t3')">
+        🛡️ 3. Current Admin Flow Wiring
+      </button>
+      <button class="btn-view t4" onclick="switchTab('t4')">
+        🐘 4. Current Backend & Database Layout
+      </button>
+    </div>
+  </header>
+
+  <main class="viewport">
+
+    <!-- ==============================================
+         TAB 1: CURRENT ACTIVE ARCHITECTURE MAP
+         ============================================== -->
+    <section id="panel-t1" class="diagram-panel active">
+      <div class="warning-banner">
+        <div class="warning-icon">⚠️</div>
+        <div class="warning-text">
+          <h3>The "God File" Architecture: Why It Feels Complicated</h3>
+          <p>Right now, almost the entire customer application is tightly bundled into a single file (<code>Storefront.jsx</code> at 2,961 lines), and almost all admin features are bundled into <code>AdminPanel.jsx</code> (1,429 lines). Here is the actual visual representation of how they are running:</p>
+        </div>
+      </div>
+
+      <div class="canvas-card">
+        <pre class="mermaid">
+flowchart TD
+  classDef app fill:#1e1b4b,stroke:#6366f1,stroke-width:2px,color:#fff;
+  classDef route fill:#0f172a,stroke:#38bdf8,stroke-width:1.5px,color:#f8fafc;
+  classDef monolith fill:#7c2d12,stroke:#ef4444,stroke-width:2.5px,color:#fff;
+  classDef inside fill:#1e293b,stroke:#f59e0b,stroke-width:1.5px,color:#f8fafc;
+  classDef single fill:#064e3b,stroke:#10b981,stroke-width:1.5px,color:#f8fafc;
+
+  APP["App.jsx (Main Entrypoint)"]:::app
+
+  APP --> CR_IDX["routes/CustomerRoutes/index.jsx<br/>RequireCustomer Guard"]:::route
+  APP --> AR_IDX["routes/AdminRoutes/index.jsx<br/>RequireAdmin Guard"]:::route
+
+  CR_IDX --> CR_FILE["pages/customer/CustomerRoutes.jsx<br/>Bridge Component"]:::route
+
+  CR_FILE --> MONO_CUST["⚠️ Storefront.jsx (2,961 Lines)<br/>MONOLITHIC GOD FILE"]:::monolith
+
+  subgraph STOREFRONT_INSIDE["What is Currently Crammed Inside Storefront.jsx:"]
+    direction TB
+    S1["1. Top NavHeader & Search"]:::inside
+    S2["2. Footer & Newsletter Form"]:::inside
+    S3["3. Icon SVG Renderer (Universal)"]:::inside
+    S4["4. HomePage (Hero, Banners, Showcases)"]:::inside
+    S5["5. ProductsPage (Catalog Filters & Sort)"]:::inside
+    S6["6. ProductCard (Wishlist & Add to Bag)"]:::inside
+    S7["7. ProductDetail (Specs, Gallery, Reviews)"]:::inside
+    S8["8. WishlistPage (Saved Items Grid)"]:::inside
+    S9["9. CartPage (Price Calculator & Promo)"]:::inside
+    S10["10. AddToBagDialog (Quantity Modal)"]:::inside
+    S11["11. CheckoutPage (Shipping & Payment)"]:::inside
+    S12["12. BuyNowDialog (Instant Buy Modal)"]:::inside
+    S13["13. OrdersPage (Customer History Table)"]:::inside
+    S14["14. OrderSuccess (Invoice Receipt View)"]:::inside
+  end
+
+  MONO_CUST --- STOREFRONT_INSIDE
+
+  AR_IDX --> MONO_ADM["⚠️ AdminPanel.jsx (1,429 Lines)<br/>MONOLITHIC ADMIN GOD FILE"]:::monolith
+
+  subgraph ADMIN_INSIDE["What is Currently Crammed Inside AdminPanel.jsx:"]
+    direction TB
+    A1["1. AdminShell (TopBar & Sidebar Shell)"]:::inside
+    A2["2. DashboardAdmin (Sales Metrics & Graphs)"]:::inside
+    A3["3. ProductsAdmin (Catalog Management Table)"]:::inside
+    A4["4. ProductModal (Create/Edit Product Dialog)"]:::inside
+    A5["5. DeleteModal (Confirm Deletion Prompt)"]:::inside
+    A6["6. CategoriesAdmin (Taxonomy Table)"]:::inside
+    A7["7. CategoryModal (Create/Edit Category Dialog)"]:::inside
+    A8["8. InventoryAdmin (Health Alerts & Inline +/-)"]:::inside
+    A9["9. RestockModal (Custom Quantity Dialog)"]:::inside
+    A10["10. OrdersAdmin (Status Pipeline Dropdown)"]:::inside
+  end
+
+  MONO_ADM --- ADMIN_INSIDE
+        </pre>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-card-title">Storefront.jsx Size</div>
+          <div class="stat-card-num" style="color:#ef4444">2,961 Lines</div>
+          <div class="stat-card-sub">Contains 14 components & all customer views</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-title">AdminPanel.jsx Size</div>
+          <div class="stat-card-num" style="color:#f59e0b">1,429 Lines</div>
+          <div class="stat-card-sub">Contains 10 components & all modals/tables</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-title">Isolated Pages</div>
+          <div class="stat-card-num" style="color:#10b981">Only 3 Files</div>
+          <div class="stat-card-sub">LoginPage.jsx, AccountPage.jsx, AdminAccount.jsx</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-title">Styles Folder</div>
+          <div class="stat-card-num" style="color:#38bdf8">12 Files</div>
+          <div class="stat-card-sub">CSS is already split into multiple files</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         TAB 2: CURRENT CUSTOMER FLOW WIRING
+         ============================================= -->
+    <section id="panel-t2" class="diagram-panel">
+      <div class="canvas-card">
+        <pre class="mermaid">
+flowchart TD
+  classDef route fill:#0284c7,stroke:#38bdf8,stroke-width:2px,color:#fff;
+  classDef bridge fill:#312e81,stroke:#818cf8,stroke-width:2px,color:#fff;
+  classDef comp fill:#1e293b,stroke:#f59e0b,stroke-width:2px,color:#f8fafc;
+  classDef api fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#f8fafc;
+
+  subgraph ROUTES["routes/CustomerRoutes/index.jsx (Active Router)"]
+    R1["/home"]:::route
+    R2["/products"]:::route
+    R3["/products/:id"]:::route
+    R4["/wishlist"]:::route
+    R5["/cart"]:::route
+    R6["/checkout"]:::route
+    R7["/orders"]:::route
+  end
+
+  subgraph BRIDGE["pages/customer/CustomerRoutes.jsx (Bridge Fetchers)"]
+    B1["CustomerHomeRoute"]:::bridge
+    B2["CustomerProductsRoute"]:::bridge
+    B3["CustomerProductRoute"]:::bridge
+    B4["CustomerWishlistRoute"]:::bridge
+    B5["CustomerCartRoute"]:::bridge
+    B6["CustomerCheckoutRoute"]:::bridge
+    B7["CustomerOrdersRoute"]:::bridge
+  end
+
+  subgraph MONO["pages/customer/Storefront.jsx (ALL IN ONE FILE)"]
+    C1["HomePage Component"]:::comp
+    C2["ProductsPage Component"]:::comp
+    C3["ProductDetail Component"]:::comp
+    C4["WishlistPage Component"]:::comp
+    C5["CartPage Component"]:::comp
+    C6["CheckoutPage Component"]:::comp
+    C7["OrdersPage Component"]:::comp
+  end
+
+  R1 --> B1 --> C1
+  R2 --> B2 --> C2
+  R3 --> B3 --> C3
+  R4 --> B4 --> C4
+  R5 --> B5 --> C5
+  R6 --> B6 --> C6
+  R7 --> B7 --> C7
+        </pre>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         TAB 3: CURRENT ADMIN FLOW WIRING
+         ============================================== -->
+    <section id="panel-t3" class="diagram-panel">
+      <div class="canvas-card">
+        <pre class="mermaid">
+flowchart TD
+  classDef route fill:#581c87,stroke:#c084fc,stroke-width:2px,color:#fff;
+  classDef comp fill:#1e293b,stroke:#c084fc,stroke-width:2px,color:#f8fafc;
+  classDef modal fill:#1e1b4b,stroke:#f59e0b,stroke-width:1.5px,color:#f8fafc;
+
+  subgraph ADMIN_ROUTES["routes/AdminRoutes/index.jsx (Active Router)"]
+    AR1["/admin (Dashboard)"]:::route
+    AR2["/admin/products"]:::route
+    AR3["/admin/categories"]:::route
+    AR4["/admin/inventory"]:::route
+    AR5["/admin/orders"]:::route
+  end
+
+  subgraph ADMIN_PANEL["pages/Admin/AdminPanel.jsx (ALL IN ONE FILE)"]
+    AP1["DashboardAdmin"]:::comp
+    AP2["ProductsAdmin"]:::comp
+    AP3["CategoriesAdmin"]:::comp
+    AP4["InventoryAdmin"]:::comp
+    AP5["OrdersAdmin"]:::comp
+
+    AP2 --> M1["ProductModal (Inside AdminPanel.jsx)"]:::modal
+    AP2 --> M2["DeleteModal (Inside AdminPanel.jsx)"]:::modal
+    AP3 --> M3["CategoryModal (Inside AdminPanel.jsx)"]:::modal
+    AP4 --> M4["RestockModal (Inside AdminPanel.jsx)"]:::modal
+  end
+
+  AR1 --> AP1
+  AR2 --> AP2
+  AR3 --> AP3
+  AR4 --> AP4
+  AR5 --> AP5
+        </pre>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         TAB 4: CURRENT BACKEND & DATABASE LAYOUT
+         ============================================== -->
+    <section id="panel-t4" class="diagram-panel">
+      <div class="canvas-card">
+        <pre class="mermaid">
+flowchart TD
+  classDef module fill:#1e1b4b,stroke:#6366f1,stroke-width:2px,color:#fff;
+  classDef ctrl fill:#1e293b,stroke:#38bdf8,stroke-width:1.5px,color:#f8fafc;
+  classDef srv fill:#1e293b,stroke:#c084fc,stroke-width:1.5px,color:#f8fafc;
+  classDef orm fill:#064e3b,stroke:#10b981,stroke-width:1.5px,color:#f8fafc;
+  classDef db fill:#431407,stroke:#f97316,stroke-width:2px,color:#f8fafc;
+
+  APP_MOD["backend/src/app.module.ts<br/>(Flat Backend Structure)"]:::module
+
+  subgraph BACKEND_FILES["Flat Controller & Service Pairs in backend/src/"]
+    direction TB
+    C1["auth.controller.ts"]:::ctrl <--> S1["auth.service.ts"]:::srv
+    C2["products.controller.ts"]:::ctrl <--> S2["products.service.ts"]:::srv
+    C3["categories.controller.ts"]:::ctrl <--> S3["categories.service.ts"]:::srv
+    C4["cart.controller.ts"]:::ctrl <--> S4["cart.service.ts"]:::srv
+    C5["wishlist.controller.ts"]:::ctrl <--> S5["wishlist.service.ts"]:::srv
+    C6["inventory.controller.ts"]:::ctrl <--> S6["inventory.service.ts"]:::srv
+    C7["orders.controller.ts"]:::ctrl <--> S7["orders.service.ts"]:::srv
+    C8["store.controller.ts"]:::ctrl <--> S8["store.service.ts"]:::srv
+  end
+
+  APP_MOD --> BACKEND_FILES
+
+  BACKEND_FILES --> PRISMA["backend/src/prisma/prisma.service.ts"]:::orm
+
+  subgraph POSTGRESQL["PostgreSQL Database (port 5432)"]
+    DB1[("Relational Table: products")]:::db
+    DB2[("Relational Table: categories")]:::db
+    DB3[("State Table: app_store (JSONB)")]:::db
+  end
+
+  PRISMA --> POSTGRESQL
+        </pre>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#0e1424',
+        primaryColor: '#6366f1',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#818cf8',
+        lineColor: '#64748b',
+        secondaryColor: '#1e293b',
+        tertiaryColor: '#151d33'
+      }
+    });
+
+    function switchTab(id) {
+      document.querySelectorAll('.btn-view').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.diagram-panel').forEach(p => p.classList.remove('active'));
+
+      const activeBtn = document.querySelector(`.btn-view.${id}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const activePanel = document.getElementById(`panel-${id}`);
+      if (activePanel) activePanel.classList.add('active');
+    }
+  </script>
+</body>
+</html>
