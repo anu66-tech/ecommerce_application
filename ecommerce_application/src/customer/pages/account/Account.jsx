@@ -5,10 +5,10 @@ import { useStore, setStore, updateStore, getStore, money } from '../../../share
 import {
   logoutApi,
   fetchAuthSessionApi,
-  fetchOrdersApi,
   updateCustomerProfileApi,
   clearAuthToken,
-} from '../../../api/backend.js';
+} from './api/accountApi.js';
+import { fetchOrdersApi } from '../orders/api/orderApi.js';
 
 export default function AccountPage() {
   const navigate = useNavigate();

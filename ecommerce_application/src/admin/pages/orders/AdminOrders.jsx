@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fetchOrdersApi, updateOrderStatusApi } from '../../../api/backend.js'
+import { fetchOrdersApi, updateOrderStatusApi } from './api/orderApi.js'
 import { useStore, updateStore } from '../../../shared/store/store.js'
 import { money } from '../../../shared/utils/format.js'
 import { downloadCsv } from '../../../utils/csvExport.js'

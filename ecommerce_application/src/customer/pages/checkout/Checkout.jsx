@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { clearCart } from '../../../redux/cartSlice.js';
-import { createOrderApi, clearCartApi } from '../../../api/backend.js';
-import { getStore, setStore, useStore } from '../../../shared/store/store.js';
-import { money } from '../../../shared/utils/format.js';
-import { STANDARD_SHIPPING, EXPRESS_SHIPPING, FREE_SHIPPING_THRESHOLD } from '../../../shared/utils/constants.js';
-import Icon from '../../../shared/components/Icon.jsx';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { clearCart, replaceCart } from '@/redux/cartSlice.js';
+import { replaceProducts } from '@/redux/ProductSlice.js';
+import { createOrderApi, clearCartApi } from './api/checkoutApi.js';
+import { getStore, setStore } from '@/shared/store/store.js';
+import { money } from '@/shared/utils/format.js';
+import { makeId } from '@/shared/utils/helpers.js';
+import { STANDARD_SHIPPING, EXPRESS_SHIPPING, FREE_SHIPPING_THRESHOLD } from '@/shared/utils/constants.js';
+import Icon from '@/shared/components/Icon.jsx';
 
 const steps = [
   ["address", "Address"],

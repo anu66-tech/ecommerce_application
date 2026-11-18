@@ -4,7 +4,7 @@ import {
   updateCategoryApi,
   deleteCategoryApi,
   fetchCategoriesApi,
-} from '../../../api/backend.js'
+} from './api/categoryApi.js'
 import { useStore, updateStore } from '../../../shared/store/store.js'
 import { makeId } from '../../../shared/utils/helpers.js'
 import PageHeading from '../../../shared/components/PageHeading.jsx'

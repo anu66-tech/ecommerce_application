@@ -13,12 +13,7 @@ export function HomePage({
   onAdd: propOnAdd,
   onBuyNow: propOnBuyNow,
 } = {}) {
-  let outletCtx = {}
-  try {
-    outletCtx = useOutletContext() || {}
-  } catch {
-    outletCtx = {}
-  }
+  const outletCtx = useOutletContext() || {}
 
   const products = propProducts ?? outletCtx.products ?? []
   const categories = propCategories ?? outletCtx.categories ?? []

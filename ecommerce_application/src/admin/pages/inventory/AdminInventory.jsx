@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux'
 import useDebouncedValue from '../../../shared/hooks/useDebouncedValue.js'
 import { updateProductStock } from '../../../redux/ProductSlice.js'
 import { updateStore } from '../../../shared/store/store.js'
-import { fetchInventoryApi, updateInventoryStockApi } from '../../../api/backend.js'
+import { fetchInventoryApi, updateInventoryStockApi } from './api/inventoryApi.js'
 import PageHeading from '../../../shared/components/PageHeading.jsx'
 
 export function AdminInventory() {

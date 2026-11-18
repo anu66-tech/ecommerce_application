@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchOrdersApi } from '../../../api/backend.js'
+import { fetchOrdersApi } from './api/orderApi.js'
 import { money } from '../../../shared/utils/format.js'
 import Icon from '../../../shared/components/Icon.jsx'
 

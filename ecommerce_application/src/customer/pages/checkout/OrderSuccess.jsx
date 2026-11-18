@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { fetchOrderByIdApi } from '../../../api/backend.js'
+import { fetchOrderByIdApi } from '@/customer/pages/orders/api/orderApi.js'
 import { getStore } from '../../../shared/store/store.js'
 import { money } from '../../../shared/utils/format.js'
 import Icon from '../../../shared/components/Icon.jsx'

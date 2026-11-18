@@ -1,2 +1,3 @@
-export * from '../../product-details/ProductDetails.jsx'
-export { default } from '../../product-details/ProductDetails.jsx'
+import ProductDetail from '../../product-details/ProductDetails.jsx'
+export { ProductDetail }
+export default ProductDetail

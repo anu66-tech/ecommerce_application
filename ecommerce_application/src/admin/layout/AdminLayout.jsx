@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { setStore, useStore } from '../../shared/store/store.js'
-import { logoutApi } from '../../api/backend.js'
+import { logoutApi } from '@/admin/pages/account/api/accountApi.js'
 import Sidebar from '../../shared/components/Sidebar.jsx'
 
 export default function AdminLayout() {

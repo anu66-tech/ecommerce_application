@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { useOutletContext, useParams, useSearchParams } from 'react-router-dom'
-import {
-  fetchProductByIdApi,
-  fetchProducts,
-  fetchWishlistApi,
-  fetchCartApi,
-} from '../../api/backend.js'
+import { fetchProducts } from '@/customer/pages/products/api/productApi.js'
+import { fetchProductByIdApi } from '@/customer/pages/product-details/api/productDetailsApi.js'
+import { fetchWishlistApi } from '@/customer/pages/wishlist/api/wishlistApi.js'
+import { fetchCartApi } from '@/customer/pages/cart/api/cartApi.js'
 import { replaceCart } from '../../redux/cartSlice.js'
 import { replaceWishlist } from '../../redux/wishlistSlice.js'
 import { replaceProducts } from '../../redux/ProductSlice.js'

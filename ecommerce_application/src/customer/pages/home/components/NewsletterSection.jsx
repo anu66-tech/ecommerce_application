@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Icon from '../../../../shared/components/Icon.jsx'
-import { subscribeNewsletterApi } from '../../../../api/backend.js'
+import { subscribeNewsletterApi } from '../api/homeApi.js'
 
 export function NewsletterSection() {
   const [email, setEmail] = useState('')

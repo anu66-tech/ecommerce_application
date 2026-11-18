@@ -7,7 +7,7 @@ import { downloadCsv } from '../../../utils/csvExport.js'
 import { addProduct, updateProduct, removeProduct as removeProductFromCatalog } from '../../../redux/ProductSlice.js'
 import { removeProductFromCart } from '../../../redux/cartSlice.js'
 import { removeFromWishlist } from '../../../redux/wishlistSlice.js'
-import { fetchProducts, createProductApi, updateProductApi, deleteProductApi } from '../../../api/backend.js'
+import { fetchProducts, createProductApi, updateProductApi, deleteProductApi } from './api/productApi.js'
 import PageHeading from '../../../shared/components/PageHeading.jsx'
 
 async function loadProductImage(file) {

@@ -3,11 +3,13 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   addToCartApi,
-  addToWishlistApi,
   removeFromCartApi,
-  removeFromWishlistApi,
   updateCartQuantityApi,
-} from '../../api/backend.js'
+} from '@/customer/pages/cart/api/cartApi.js'
+import {
+  addToWishlistApi,
+  removeFromWishlistApi,
+} from '@/customer/pages/wishlist/api/wishlistApi.js'
 import {
   addToCart,
   removeCartItem,

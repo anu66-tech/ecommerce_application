@@ -8,7 +8,7 @@ import {
   logoutApi,
   setAuthToken,
   clearAuthToken,
-} from '../../api/backend.js';
+} from '@/api/backend.js';
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams();

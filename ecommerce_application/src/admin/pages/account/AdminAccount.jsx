@@ -4,8 +4,8 @@ import { useStore, setStore } from '../../../shared/store/store.js';
 import {
   logoutApi,
   clearAuthToken,
-  fetchInventoryApi,
-} from '../../../api/backend.js';
+} from './api/accountApi.js';
+import { fetchInventoryApi } from '../inventory/api/inventoryApi.js';
 
 export default function AdminAccount() {
   const navigate = useNavigate();
