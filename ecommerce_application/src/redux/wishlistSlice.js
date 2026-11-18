@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { getStore } from "../pages/customer/store.js";
+import { getStore } from "../shared/store/store.js";
 
 const initialItems =
   typeof window !== "undefined"

@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom'
-import { useStore } from '../../pages/customer/store'
-import CustomerLayout from '../../pages/customer/Storefront'
+import { useStore } from '../../shared/store/store.js'
+import CustomerLayout from '../../customer/layout/CustomerLayout.jsx'
 import {
   CustomerCartRoute,
   CustomerCheckoutRoute,
@@ -11,7 +11,7 @@ import {
   CustomerProductRoute,
   CustomerProductsRoute,
   CustomerWishlistRoute,
-} from '../../pages/customer/CustomerRoutes'
+} from '../../customer/routes/CustomerRoutes.jsx'
 
 function RequireCustomer({ children }) {
   const currentUser = useStore('currentUser')

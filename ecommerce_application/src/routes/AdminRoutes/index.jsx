@@ -1,15 +1,13 @@
 import { Navigate } from 'react-router-dom'
-import { useStore } from '../../pages/customer/store'
-import LoginPage from '../../pages/customer/LoginPage'
-import AdminAccount from '../../pages/Admin/AdminAccount'
-import {
-  AdminCategories,
-  AdminInventory,
-  AdminLayout,
-  AdminOrders,
-  AdminOverview,
-  AdminProducts,
-} from '../../pages/Admin/AdminPanel'
+import { useStore } from '../../shared/store/store.js'
+import LoginPage from '../../shared/auth/LoginPage.jsx'
+import AdminLayout from '../../admin/layout/AdminLayout.jsx'
+import Dashboard from '../../admin/pages/dashboard/Dashboard.jsx'
+import AdminProducts from '../../admin/pages/products/AdminProducts.jsx'
+import AdminCategories from '../../admin/pages/categories/AdminCategories.jsx'
+import AdminInventory from '../../admin/pages/inventory/AdminInventory.jsx'
+import AdminOrders from '../../admin/pages/orders/AdminOrders.jsx'
+import AdminAccount from '../../admin/pages/account/AdminAccount.jsx'
 
 function RequireAdmin({ children }) {
   const currentAdmin = useStore('currentAdmin')
@@ -39,7 +37,7 @@ const adminRoutes = [
       </RequireAdmin>
     ),
     children: [
-      { index: true, element: <AdminOverview /> },
+      { index: true, element: <Dashboard /> },
       { path: 'products', element: <AdminProducts /> },
       { path: 'categories', element: <AdminCategories /> },
       { path: 'inventory', element: <AdminInventory /> },
