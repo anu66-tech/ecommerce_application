@@ -11,18 +11,13 @@ import { replaceProducts } from './redux/ProductSlice.js'
 import './styles/index.js'
 
 function RootEntryRoute() {
-  const currentUser = useStore('currentUser')
   const currentAdmin = useStore('currentAdmin')
 
   if (currentAdmin?.role === 'admin') {
     return <Navigate to="/admin" replace />
   }
 
-  if (currentUser?.role === 'customer') {
-    return <Navigate to="/home" replace />
-  }
-
-  return <Navigate to="/login" replace />
+  return <Navigate to="/home" replace />
 }
 
 const router = createBrowserRouter([

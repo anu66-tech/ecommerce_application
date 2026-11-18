@@ -17,29 +17,23 @@ function RequireCustomer({ children }) {
   const currentUser = useStore('currentUser')
   const currentAdmin = useStore('currentAdmin')
 
-  // Only open storefront when customer credential has been authenticated
   if (currentUser?.role === 'customer') {
     return children
   }
 
-  // If admin credential is authenticated, do not open storefront; redirect to admin panel
   if (currentAdmin?.role === 'admin') {
     return <Navigate to="/admin" replace />
   }
 
-  // Neither credential provided: redirect to login
-  return <Navigate to="/login" replace />
+  return <Navigate to="/login?redirect=/account" replace />
 }
 
 const customerRoutes = [
   {
     path: '/',
-    element: (
-      <RequireCustomer>
-        <CustomerLayout />
-      </RequireCustomer>
-    ),
+    element: <CustomerLayout />,
     children: [
+      { index: true, element: <CustomerHomeRoute /> },
       { path: 'home', element: <CustomerHomeRoute /> },
       { path: 'products', element: <CustomerProductsRoute /> },
       { path: 'products/:id', element: <CustomerProductRoute /> },
@@ -51,8 +45,22 @@ const customerRoutes = [
       { path: 'checkout/payment', element: <CustomerCheckoutRoute /> },
       { path: 'checkout/review', element: <CustomerCheckoutRoute /> },
       { path: 'order-success', element: <CustomerOrderSuccessRoute /> },
-      { path: 'orders', element: <CustomerOrdersRoute /> },
-      { path: 'account', element: <CustomerAccountRoute /> },
+      {
+        path: 'orders',
+        element: (
+          <RequireCustomer>
+            <CustomerOrdersRoute />
+          </RequireCustomer>
+        ),
+      },
+      {
+        path: 'account',
+        element: (
+          <RequireCustomer>
+            <CustomerAccountRoute />
+          </RequireCustomer>
+        ),
+      },
     ],
   },
 ]
