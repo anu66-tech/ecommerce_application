@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Form, Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { checkBackendHealth } from '@/api/backend.js'
+import { checkBackendHealth } from '@/shared/api/client.js'
 import { useStore } from '../store/store.js'
 import useDebouncedValue from '../hooks/useDebouncedValue.js'
 import Icon from './Icon.jsx'

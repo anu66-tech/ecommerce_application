@@ -1,14 +1,9 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore, setStore, updateStore } from '../store/store.js';
-import {
-  customerLoginApi,
-  customerRegisterApi,
-  adminLoginApi,
-  logoutApi,
-  setAuthToken,
-  clearAuthToken,
-} from '@/api/backend.js';
+import { customerLoginApi, customerRegisterApi } from '@/customer/pages/account/api/accountApi.js';
+import { adminLoginApi, logoutApi } from '@/admin/pages/account/api/accountApi.js';
+import { setAuthToken, clearAuthToken } from '@/shared/api/client.js';
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams();

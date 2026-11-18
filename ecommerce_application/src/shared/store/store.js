@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { initializeBackendStore, saveBackendStoreValue } from '@/api/backend.js'
+import { initializeBackendStore, saveBackendStoreValue } from '@/shared/api/client.js'
 
 export const FREE_SHIPPING_THRESHOLD = 4999
 export const STANDARD_SHIPPING = 99

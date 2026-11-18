@@ -1,7 +1,8 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { setStore, useStore } from '../store/store.js'
-import { clearAuthToken, logoutApi } from '@/api/backend.js'
+import { clearAuthToken } from '@/shared/api/client.js'
+import { logoutApi } from '@/customer/pages/account/api/accountApi.js'
 import './Sidebar.css'
 
 const storefrontLinks = [

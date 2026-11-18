@@ -1,9 +1,15 @@
-import {
-  fetchOrdersApi,
-  fetchOrderByIdApi,
-} from '@/api/backend.js'
+import { requestApi } from '@/shared/api/client.js'
 
-export {
-  fetchOrdersApi,
-  fetchOrderByIdApi,
+export function fetchOrdersApi(query = {}, { signal } = {}) {
+  const params = new URLSearchParams()
+  Object.entries(query || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      params.set(key, String(value))
+    }
+  })
+  return requestApi(`/orders?${params}`, { signal })
+}
+
+export function fetchOrderByIdApi(id, { signal } = {}) {
+  return requestApi(`/orders/${encodeURIComponent(id)}`, { signal })
 }

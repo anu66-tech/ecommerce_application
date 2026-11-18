@@ -1,13 +1,25 @@
-import {
-  fetchWishlistApi,
-  addToWishlistApi,
-  removeFromWishlistApi,
-  syncWishlistApi,
-} from '@/api/backend.js'
+import { requestApi } from '@/shared/api/client.js'
 
-export {
-  fetchWishlistApi,
-  addToWishlistApi,
-  removeFromWishlistApi,
-  syncWishlistApi,
+export function fetchWishlistApi({ signal } = {}) {
+  return requestApi('/wishlist', { signal })
+}
+
+export function addToWishlistApi(productId) {
+  return requestApi('/wishlist', {
+    method: 'POST',
+    body: JSON.stringify({ productId }),
+  })
+}
+
+export function removeFromWishlistApi(productId) {
+  return requestApi(`/wishlist/${encodeURIComponent(productId)}`, {
+    method: 'DELETE',
+  })
+}
+
+export function syncWishlistApi(items) {
+  return requestApi('/wishlist', {
+    method: 'PUT',
+    body: JSON.stringify({ items }),
+  })
 }
