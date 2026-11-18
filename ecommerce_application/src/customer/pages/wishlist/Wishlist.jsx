@@ -14,9 +14,9 @@ export function WishlistPage({ products, wishlist, onWish, onAdd, onBuyNow }) {
         <h1>
           My Wishlist<span>.</span>
         </h1>
-        <a className="text-link" href="/products">
+        <Link className="text-link" to="/products">
           Continue Shopping <Icon name="arrow" size={16} />
-        </a>
+        </Link>
       </div>
       {saved.length ? (
         <div className="cart-table-wrap">

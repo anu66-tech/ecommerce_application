@@ -5,7 +5,7 @@ import { useStore } from '../store/store.js'
 import useDebouncedValue from '../hooks/useDebouncedValue.js'
 import Icon from './Icon.jsx'
 
-export function Header({ count, wishlistCount, onAccount }) {
+export function Header({ count, wishlistCount }) {
   const currentUser = useStore('currentUser')
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()

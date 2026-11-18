@@ -10,9 +10,10 @@ import { makeId } from '../../../shared/utils/helpers.js'
 import PageHeading from '../../../shared/components/PageHeading.jsx'
 
 export function AdminCategories({ categories: propCategories, products: propProducts }) {
+  const [liveCategories, setLiveCategories] = useState(null)
   const storeCategories = useStore('categories') || []
   const storeProducts = useStore('products') || []
-  const categories = propCategories || storeCategories
+  const categories = liveCategories || propCategories || storeCategories
   const products = propProducts || storeProducts
 
   const [name, setName] = useState('')
@@ -33,11 +34,9 @@ export function AdminCategories({ categories: propCategories, products: propProd
     fetchCategoriesApi()
       .then((cats) => {
         if (Array.isArray(cats) && cats.length) {
-          updateStore(
-            'categories',
-            () => cats.map((c) => ({ id: c.id, name: c.name, icon: c.icon || '✳' })),
-            { skipSave: true }
-          )
+          const mapped = cats.map((c) => ({ id: c.id, name: c.name, icon: c.icon || '✳' }))
+          setLiveCategories(mapped)
+          updateStore('categories', () => mapped, { skipSave: true })
         }
       })
       .catch((err) => console.error('Categories load error:', err))
@@ -63,10 +62,9 @@ export function AdminCategories({ categories: propCategories, products: propProd
     setError('')
     try {
       const created = await createCategoryApi({ name: normalized, icon: iconVal })
-      updateStore('categories', (all) => [
-        ...(all || []),
-        { id: created?.id || makeId('category'), name: normalized, icon: created?.icon || iconVal || '✳' },
-      ])
+      const newCat = { id: created?.id || makeId('category'), name: normalized, icon: created?.icon || iconVal || '✳' }
+      setLiveCategories((prev) => [...(prev || categories), newCat])
+      updateStore('categories', (all) => [...(all || []), newCat])
       setName('')
       setNewIcon('')
       setNameError('')
@@ -137,6 +135,11 @@ export function AdminCategories({ categories: propCategories, products: propProd
           item.id === editingCategory.id ? { ...item, name: finalName, icon: finalIcon } : item
         )
       )
+      setLiveCategories((prev) =>
+        (prev || categories).map((item) =>
+          item.id === editingCategory.id ? { ...item, name: finalName, icon: finalIcon } : item
+        )
+      )
 
       if (oldName !== finalName) {
         updateStore('products', (all) =>
@@ -170,6 +173,7 @@ export function AdminCategories({ categories: propCategories, products: propProd
     }
     try {
       await deleteCategoryApi(pendingCategoryDelete.id)
+      setLiveCategories((prev) => (prev || categories).filter((item) => item.id !== pendingCategoryDelete.id))
       updateStore('categories', (all) => (all || []).filter((item) => item.id !== pendingCategoryDelete.id))
       setPendingCategoryDelete(null)
     } catch (removeError) {

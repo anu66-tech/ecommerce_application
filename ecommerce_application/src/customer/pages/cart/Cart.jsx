@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { getStore } from '../../../shared/store/store.js';
 import { checkoutUrl } from '../../../shared/utils/helpers.js';
 import { money } from '../../../shared/utils/format.js';

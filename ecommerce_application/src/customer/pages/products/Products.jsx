@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import useDebouncedValue from "../../../shared/hooks/useDebouncedValue.js";
 import Icon from "../../../shared/components/Icon.jsx";
 import ProductGrid from "../../../shared/components/ProductGrid.jsx";
-import { money } from "../../../shared/utils/format.js";
+import { fetchProducts } from "./api/productApi.js";
 
 export function ProductsPage({
   products,

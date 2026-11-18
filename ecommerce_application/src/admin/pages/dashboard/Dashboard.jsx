@@ -1,21 +1,60 @@
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { fetchDashboardOverviewApi } from './api/dashboardApi.js'
 import { useStore } from '../../../shared/store/store.js'
 import { money } from '../../../shared/utils/format.js'
 import PageHeading from '../../../shared/components/PageHeading.jsx'
 
 export function Dashboard({ products: propProducts, orders: propOrders }) {
   const navigate = useNavigate()
+  const [liveData, setLiveData] = useState(null)
   const storeProducts = useStore('products') || []
   const storeOrders = useStore('orders') || []
-  const products = propProducts || storeProducts
-  const orders = propOrders || storeOrders
+
+  useEffect(() => {
+    let active = true
+    const controller = new AbortController()
+
+    fetchDashboardOverviewApi({ signal: controller.signal })
+      .then((data) => {
+        if (!active || controller.signal.aborted) return
+        setLiveData(data)
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError' && !controller.signal.aborted) {
+          console.warn('Dashboard overview API load warning:', err)
+        }
+      })
+
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [])
+
+  const apiProducts = Array.isArray(liveData?.products?.items)
+    ? liveData.products.items
+    : Array.isArray(liveData?.products)
+      ? liveData.products
+      : null
+  const apiOrders = Array.isArray(liveData?.orders?.items)
+    ? liveData.orders.items
+    : Array.isArray(liveData?.orders)
+      ? liveData.orders
+      : null
+
+  const products = apiProducts || propProducts || storeProducts
+  const orders = apiOrders || propOrders || storeOrders
 
   const revenue = orders.reduce((sum, order) => sum + (Number(order.total) || 0), 0)
-  const lowStock = products.filter((product) => product.stock > 0 && product.stock <= 10).length
+  const lowStock = liveData?.inventory?.lowStockCount ?? products.filter((product) => product.stock > 0 && product.stock <= 10).length
+  const totalProductCount = liveData?.products?.total ?? products.length
+  const totalOrderCount = liveData?.orders?.total ?? orders.length
+
   const metrics = [
     { label: 'Total revenue', value: money(revenue), note: 'All-time order total', to: null, icon: '💰' },
-    { label: 'Orders', value: orders.length.toString(), note: 'Placed in this store', to: '/admin/orders', icon: '↗' },
-    { label: 'Products', value: products.length.toString(), note: 'Across your collection', to: '/admin/products', icon: '▦' },
+    { label: 'Orders', value: totalOrderCount.toString(), note: 'Placed in this store', to: '/admin/orders', icon: '↗' },
+    { label: 'Products', value: totalProductCount.toString(), note: 'Across your collection', to: '/admin/products', icon: '▦' },
     { label: 'Needs a restock', value: lowStock.toString(), note: '10 items or fewer', to: '/admin/inventory', icon: '▥' },
   ]
 

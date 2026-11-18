@@ -1,12 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
+  fetchProducts,
+  fetchCategoriesApi,
+} from '@/customer/pages/products/api/productApi.js'
+import {
+  fetchCartApi,
   addToCartApi,
   removeFromCartApi,
   updateCartQuantityApi,
 } from '@/customer/pages/cart/api/cartApi.js'
 import {
+  fetchWishlistApi,
   addToWishlistApi,
   removeFromWishlistApi,
 } from '@/customer/pages/wishlist/api/wishlistApi.js'
@@ -21,6 +27,7 @@ import {
   removeFromWishlist,
   replaceWishlist,
 } from '../../redux/wishlistSlice.js'
+import { replaceProducts } from '../../redux/ProductSlice.js'
 import { getStore, useStore } from '../../shared/store/store.js'
 import { checkoutUrl } from '../../shared/utils/helpers.js'
 import Sidebar from '../../shared/components/Sidebar.jsx'
@@ -32,7 +39,10 @@ import AddToBagDialog from '../../shared/components/AddToBagDialog.jsx'
 import BuyNowDialog from '../../shared/components/BuyNowDialog.jsx'
 
 export default function CustomerLayout() {
-  const rawProducts = useStore("products")
+  const [liveProducts, setLiveProducts] = useState(null)
+  const [liveCategories, setLiveCategories] = useState([])
+  const storeRaw = useStore("products") || []
+  const rawProducts = liveProducts ?? storeRaw
   const products = useMemo(() => {
     return [...(rawProducts ?? [])].sort((a, b) => {
       const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime()
@@ -42,7 +52,8 @@ export default function CustomerLayout() {
     })
   }, [rawProducts])
 
-  const categories = useStore("categories")
+  const storeCategories = useStore("categories") || []
+  const categories = liveCategories.length ? liveCategories : storeCategories
   const cart = useSelector((state) => state.cart.items)
   const wishlist = useSelector((state) => state.wishlist.items)
   const orders = useStore("orders")
@@ -51,6 +62,72 @@ export default function CustomerLayout() {
   const [pendingWishlistRemoval, setPendingWishlistRemoval] = useState(null)
   const [pendingAddToBag, setPendingAddToBag] = useState(null)
   const [pendingBuyNow, setPendingBuyNow] = useState(null)
+
+  useEffect(() => {
+    let active = true
+    const controller = new AbortController()
+
+    // 1. Fetch live products from backend
+    fetchProducts({ limit: 100 }, { signal: controller.signal })
+      .then((res) => {
+        if (!active || controller.signal.aborted) return
+        const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : null
+        if (items) {
+          setLiveProducts(items)
+          dispatch(replaceProducts(items))
+        }
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError' && !controller.signal.aborted) {
+          console.warn('CustomerLayout products fetch failed:', err)
+        }
+      })
+
+    // 2. Fetch live categories from backend
+    fetchCategoriesApi({ signal: controller.signal })
+      .then((cats) => {
+        if (!active || controller.signal.aborted) return
+        if (Array.isArray(cats) && cats.length) {
+          setLiveCategories(cats)
+        }
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError' && !controller.signal.aborted) {
+          console.warn('CustomerLayout categories fetch failed:', err)
+        }
+      })
+
+    // 3. Fetch live cart
+    fetchCartApi({ signal: controller.signal })
+      .then((res) => {
+        if (!active || controller.signal.aborted) return
+        const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : []
+        dispatch(replaceCart(items))
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError' && !controller.signal.aborted) {
+          console.warn('CustomerLayout cart fetch failed:', err)
+        }
+      })
+
+    // 4. Fetch live wishlist
+    fetchWishlistApi({ signal: controller.signal })
+      .then((res) => {
+        if (!active || controller.signal.aborted) return
+        const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : []
+        dispatch(replaceWishlist(items))
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError' && !controller.signal.aborted) {
+          console.warn('CustomerLayout wishlist fetch failed:', err)
+        }
+      })
+
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [dispatch])
 
   const count = cart.reduce((sum, item) => sum + item.quantity, 0)
 

@@ -42,7 +42,9 @@ export function clearAuthToken() {
       window.localStorage.removeItem('jwt_token')
       window.localStorage.removeItem('jwt_expires_at')
     }
-  } catch {}
+  } catch (err) {
+    void err
+  }
 }
 
 export function getTokenTimeRemaining() {
@@ -52,7 +54,9 @@ export function getTokenTimeRemaining() {
       if (!expiresAt) return 0
       return Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
     }
-  } catch {}
+  } catch (err) {
+    void err
+  }
   return 0
 }
 
@@ -150,6 +154,9 @@ apiClient.interceptors.request.use((config) => {
   const token = getAuthToken()
   const headers = {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
     ...config.headers,
   }
   if (token) {

@@ -26,7 +26,6 @@ export function CustomerHomeRoute() {
   const category = searchParams.get('category')
 
   useEffect(() => {
-    if (products && products.length > 0) return
     let active = true
     const controller = new AbortController()
     fetchProducts({ limit: 50 }, { signal: controller.signal })
@@ -45,7 +44,7 @@ export function CustomerHomeRoute() {
       active = false
       controller.abort()
     }
-  }, [dispatch, products])
+  }, [dispatch])
 
   const visibleProducts = category ? (products || []).filter((product) => product.category === category) : products
   return <HomePage products={visibleProducts} categories={categories} wishlist={wishlist} onWish={onWish} onAdd={onAdd} onBuyNow={onBuyNow} />

@@ -6,6 +6,9 @@ import {
   clearAuthToken,
 } from './api/accountApi.js';
 import { fetchInventoryApi } from '../inventory/api/inventoryApi.js';
+import { fetchProducts } from '../products/api/productApi.js';
+import { fetchCategoriesApi } from '../categories/api/categoryApi.js';
+import { fetchOrdersApi } from '../orders/api/orderApi.js';
 
 export default function AdminAccount() {
   const navigate = useNavigate();
@@ -15,8 +18,11 @@ export default function AdminAccount() {
   const storeOrders = useStore('orders') || [];
 
   const [liveInventoryAlerts, setLiveInventoryAlerts] = useState(0);
+  const [liveProductCount, setLiveProductCount] = useState(null);
+  const [liveCategoryCount, setLiveCategoryCount] = useState(null);
+  const [liveOrders, setLiveOrders] = useState(null);
 
-  // Strictly 1 API call on mount to load live inventory metrics
+  // Load live counts and inventory metrics directly from APIs
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
@@ -35,15 +41,57 @@ export default function AdminAccount() {
         }
       });
 
+    fetchProducts({ limit: 1 }, { signal: controller.signal })
+      .then((res) => {
+        if (!active || controller.signal.aborted) return;
+        if (typeof res?.total === 'number') {
+          setLiveProductCount(res.total);
+        }
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError' && !controller.signal.aborted) {
+          console.warn('Products API warning:', err);
+        }
+      });
+
+    fetchCategoriesApi({ signal: controller.signal })
+      .then((cats) => {
+        if (!active || controller.signal.aborted) return;
+        if (Array.isArray(cats)) {
+          setLiveCategoryCount(cats.length);
+        }
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError' && !controller.signal.aborted) {
+          console.warn('Categories API warning:', err);
+        }
+      });
+
+    fetchOrdersApi({}, { signal: controller.signal })
+      .then((res) => {
+        if (!active || controller.signal.aborted) return;
+        const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : null;
+        if (items) {
+          setLiveOrders(items);
+        }
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError' && !controller.signal.aborted) {
+          console.warn('Orders API warning:', err);
+        }
+      });
+
     return () => {
       active = false;
       controller.abort();
     };
   }, []);
 
-  const lowStockCount = storeProducts.filter((p) => p.stock > 0 && p.stock <= 10).length;
-  const outOfStockCount = storeProducts.filter((p) => p.stock === 0).length;
-  const processingOrders = storeOrders.filter((o) => o.status === 'Processing').length;
+  const orders = liveOrders || storeOrders;
+  const processingOrders = orders.filter((o) => o.status === 'Processing').length;
+  const productCount = liveProductCount ?? storeProducts.length;
+  const categoryCount = liveCategoryCount ?? storeCategories.length;
+  const orderCount = liveOrders ? liveOrders.length : storeOrders.length;
 
   const handleAdminLogout = async () => {
     clearAuthToken();
@@ -111,25 +159,25 @@ export default function AdminAccount() {
       <div className="account-stats-grid">
         <Link to="/admin/products" className="account-stat-card">
           <span className="account-stat-icon">▦</span>
-          <span className="account-stat-num">{storeProducts.length}</span>
+          <span className="account-stat-num">{productCount}</span>
           <span className="account-stat-label">Catalog Products</span>
         </Link>
 
         <Link to="/admin/categories" className="account-stat-card">
           <span className="account-stat-icon">◫</span>
-          <span className="account-stat-num">{storeCategories.length}</span>
+          <span className="account-stat-num">{categoryCount}</span>
           <span className="account-stat-label">Product Categories</span>
         </Link>
 
         <Link to="/admin/orders" className="account-stat-card">
           <span className="account-stat-icon">↗</span>
-          <span className="account-stat-num">{storeOrders.length}</span>
+          <span className="account-stat-num">{orderCount}</span>
           <span className="account-stat-label">Customer Orders ({processingOrders} processing)</span>
         </Link>
 
         <Link to="/admin/inventory" className="account-stat-card">
           <span className="account-stat-icon">▥</span>
-          <span className="account-stat-num">{liveInventoryAlerts || (lowStockCount + outOfStockCount)}</span>
+          <span className="account-stat-num">{liveInventoryAlerts}</span>
           <span className="account-stat-label">Inventory Alerts</span>
         </Link>
       </div>
