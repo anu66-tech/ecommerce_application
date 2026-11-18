@@ -65,12 +65,11 @@ export default function CustomerLayout() {
 
   useEffect(() => {
     let active = true
-    const controller = new AbortController()
 
     // 1. Fetch live products from backend
-    fetchProducts({ limit: 100 }, { signal: controller.signal })
+    fetchProducts({ limit: 100 })
       .then((res) => {
-        if (!active || controller.signal.aborted) return
+        if (!active) return
         const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : null
         if (items) {
           setLiveProducts(items)
@@ -78,54 +77,49 @@ export default function CustomerLayout() {
         }
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('CustomerLayout products fetch failed:', err)
-        }
+        if (!active) return
+        console.warn('CustomerLayout products fetch failed:', err)
       })
 
     // 2. Fetch live categories from backend
-    fetchCategoriesApi({ signal: controller.signal })
+    fetchCategoriesApi()
       .then((cats) => {
-        if (!active || controller.signal.aborted) return
+        if (!active) return
         if (Array.isArray(cats) && cats.length) {
           setLiveCategories(cats)
         }
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('CustomerLayout categories fetch failed:', err)
-        }
+        if (!active) return
+        console.warn('CustomerLayout categories fetch failed:', err)
       })
 
     // 3. Fetch live cart
-    fetchCartApi({ signal: controller.signal })
+    fetchCartApi()
       .then((res) => {
-        if (!active || controller.signal.aborted) return
+        if (!active) return
         const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : []
         dispatch(replaceCart(items))
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('CustomerLayout cart fetch failed:', err)
-        }
+        if (!active) return
+        console.warn('CustomerLayout cart fetch failed:', err)
       })
 
     // 4. Fetch live wishlist
-    fetchWishlistApi({ signal: controller.signal })
+    fetchWishlistApi()
       .then((res) => {
-        if (!active || controller.signal.aborted) return
+        if (!active) return
         const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : []
         dispatch(replaceWishlist(items))
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('CustomerLayout wishlist fetch failed:', err)
-        }
+        if (!active) return
+        console.warn('CustomerLayout wishlist fetch failed:', err)
       })
 
     return () => {
       active = false
-      controller.abort()
     }
   }, [dispatch])
 

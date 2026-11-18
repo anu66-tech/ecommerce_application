@@ -54,11 +54,10 @@ export default function AccountPage() {
   // Initial load effect: runs strictly ONCE on mount to fetch session & orders
   useEffect(() => {
     let active = true;
-    const controller = new AbortController();
 
-    fetchAuthSessionApi({ signal: controller.signal })
+    fetchAuthSessionApi()
       .then((session) => {
-        if (!active || controller.signal.aborted || !session) return;
+        if (!active || !session) return;
         if (session.user) {
           const current = getStore('currentUser');
           if (current && (current.name !== session.user.name || current.email !== session.user.email)) {
@@ -67,29 +66,24 @@ export default function AccountPage() {
         }
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('Session API load warning:', err);
-        }
+        if (active) console.warn('Session API load warning:', err);
       });
 
     // Fetch user orders once on mount
-    fetchOrdersApi({}, { signal: controller.signal })
+    fetchOrdersApi({})
       .then((res) => {
-        if (!active || controller.signal.aborted) return;
+        if (!active) return;
         const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : null;
         if (items) {
           setRemoteOrders(items);
         }
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('Orders API load warning:', err);
-        }
+        if (active) console.warn('Orders API load warning:', err);
       });
 
     return () => {
       active = false;
-      controller.abort();
     };
   }, []);
 

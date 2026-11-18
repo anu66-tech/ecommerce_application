@@ -13,22 +13,19 @@ export function Dashboard({ products: propProducts, orders: propOrders }) {
 
   useEffect(() => {
     let active = true
-    const controller = new AbortController()
 
-    fetchDashboardOverviewApi({ signal: controller.signal })
+    fetchDashboardOverviewApi()
       .then((data) => {
-        if (!active || controller.signal.aborted) return
+        if (!active) return
         setLiveData(data)
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('Dashboard overview API load warning:', err)
-        }
+        if (!active) return
+        console.warn('Dashboard overview API load warning:', err)
       })
 
     return () => {
       active = false
-      controller.abort()
     }
   }, [])
 

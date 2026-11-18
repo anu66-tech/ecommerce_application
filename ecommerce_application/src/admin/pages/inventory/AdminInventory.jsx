@@ -21,9 +21,8 @@ export function AdminInventory() {
   const [pendingStockDecrease, setPendingStockDecrease] = useState(null)
   const debouncedSearch = useDebouncedValue(search)
 
-  const lastInventoryParamsRef = useRef('')
-
   useEffect(() => {
+    let active = true
     const currentParams = {
       page,
       limit,
@@ -32,28 +31,23 @@ export function AdminInventory() {
       sort: sortKey,
       order: sortDirection,
     }
-    const signature = JSON.stringify({ ...currentParams, reloadVersion })
-    if (lastInventoryParamsRef.current === signature) {
-      return
-    }
-    lastInventoryParamsRef.current = signature
 
-    const controller = new AbortController()
     setLoading(true)
-    fetchInventoryApi(currentParams, { signal: controller.signal })
+    fetchInventoryApi(currentParams)
       .then((result) => {
-        if (controller.signal.aborted) return
+        if (!active) return
         setCatalog(result)
         setLoadError('')
         setLoading(false)
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          setLoadError(err.message)
-          setLoading(false)
-        }
+        if (!active) return
+        setLoadError(err.message)
+        setLoading(false)
       })
-    return () => controller.abort()
+    return () => {
+      active = false
+    }
   }, [page, limit, debouncedSearch, status, sortKey, sortDirection, reloadVersion])
 
   const updateStock = async (id, value) => {

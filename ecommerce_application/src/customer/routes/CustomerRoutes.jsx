@@ -21,30 +21,8 @@ import LoginPage from '../../shared/auth/LoginPage.jsx'
 
 export function CustomerHomeRoute() {
   const { products, categories, wishlist, onWish, onAdd, onBuyNow } = useOutletContext()
-  const dispatch = useDispatch()
   const [searchParams] = useSearchParams()
   const category = searchParams.get('category')
-
-  useEffect(() => {
-    let active = true
-    const controller = new AbortController()
-    fetchProducts({ limit: 50 }, { signal: controller.signal })
-      .then((res) => {
-        if (!active || controller.signal.aborted) return
-        const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : null
-        if (items) dispatch(replaceProducts(items))
-      })
-      .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('Home products API error:', err)
-        }
-      })
-
-    return () => {
-      active = false
-      controller.abort()
-    }
-  }, [dispatch])
 
   const visibleProducts = category ? (products || []).filter((product) => product.category === category) : products
   return <HomePage products={visibleProducts} categories={categories} wishlist={wishlist} onWish={onWish} onAdd={onAdd} onBuyNow={onBuyNow} />
@@ -82,19 +60,15 @@ export function CustomerProductRoute() {
 
   useEffect(() => {
     let active = true
-    const controller = new AbortController()
-    fetchProductByIdApi(id, { signal: controller.signal })
+    fetchProductByIdApi(id)
       .then((res) => {
-        if (active && !controller.signal.aborted && res) setRemoteProduct(res)
+        if (active && res) setRemoteProduct(res)
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('Product by ID fetch warning:', err)
-        }
+        if (active) console.warn('Product by ID fetch warning:', err)
       })
     return () => {
       active = false
-      controller.abort()
     }
   }, [id])
 
@@ -108,23 +82,19 @@ export function CustomerWishlistRoute() {
 
   useEffect(() => {
     let active = true
-    const controller = new AbortController()
-    fetchWishlistApi({ signal: controller.signal })
+    fetchWishlistApi()
       .then((res) => {
-        if (!active || controller.signal.aborted) return
+        if (!active) return
         const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : []
         if (JSON.stringify(items) !== JSON.stringify(wishlist)) {
           dispatch(replaceWishlist(items))
         }
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('Wishlist API error:', err)
-        }
+        if (active) console.warn('Wishlist API error:', err)
       })
     return () => {
       active = false
-      controller.abort()
     }
   }, [dispatch])
 
@@ -137,23 +107,19 @@ export function CustomerCartRoute() {
 
   useEffect(() => {
     let active = true
-    const controller = new AbortController()
-    fetchCartApi({ signal: controller.signal })
+    fetchCartApi()
       .then((res) => {
-        if (!active || controller.signal.aborted) return
+        if (!active) return
         const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : []
         if (JSON.stringify(items) !== JSON.stringify(cart)) {
           dispatch(replaceCart(items))
         }
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('Cart API error:', err)
-        }
+        if (active) console.warn('Cart API error:', err)
       })
     return () => {
       active = false
-      controller.abort()
     }
   }, [dispatch])
 

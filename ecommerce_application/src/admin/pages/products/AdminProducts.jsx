@@ -84,34 +84,29 @@ export function AdminProducts({ products: propProducts, categories: propCategori
   const orderBy = sortKey === 'newest' ? 'updatedAt' : sortKey === 'status' ? 'stock' : sortKey
   const order = sortDirection
   const requestKey = JSON.stringify([page, pageSize, debouncedSearch, orderBy, order, reloadVersion])
-  const lastProductsKeyRef = useRef('')
-
   useEffect(() => {
-    if (lastProductsKeyRef.current === requestKey) {
-      return
-    }
-    lastProductsKeyRef.current = requestKey
+    let active = true
 
-    const controller = new AbortController()
     fetchProducts({
       page,
       limit: pageSize,
       q: debouncedSearch.trim(),
       orderBy,
       order,
-    }, { signal: controller.signal }).then((result) => {
-      if (controller.signal.aborted) return
+    }).then((result) => {
+      if (!active) return
       setCatalog({ ...result, requestKey })
       setLoadError('')
       if (result.page !== page) {
         setPage(result.page)
       }
     }).catch((requestError) => {
-      if (requestError.name !== 'AbortError' && !controller.signal.aborted) {
-        setLoadError(requestError.message)
-      }
+      if (!active) return
+      setLoadError(requestError.message)
     })
-    return () => controller.abort()
+    return () => {
+      active = false
+    }
   }, [requestKey])
 
   useEffect(() => {

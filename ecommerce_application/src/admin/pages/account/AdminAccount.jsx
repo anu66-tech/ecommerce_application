@@ -25,65 +25,55 @@ export default function AdminAccount() {
   // Load live counts and inventory metrics directly from APIs
   useEffect(() => {
     let active = true;
-    const controller = new AbortController();
 
-    fetchInventoryApi({ limit: 100 }, { signal: controller.signal })
+    fetchInventoryApi({ limit: 100 })
       .then((res) => {
-        if (!active || controller.signal.aborted) return;
+        if (!active) return;
         const summary = res?.summary;
         if (summary) {
           setLiveInventoryAlerts((summary.lowStock || 0) + (summary.outOfStock || 0));
         }
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('Inventory API warning:', err);
-        }
+        if (active) console.warn('Inventory API warning:', err);
       });
 
-    fetchProducts({ limit: 1 }, { signal: controller.signal })
+    fetchProducts({ limit: 1 })
       .then((res) => {
-        if (!active || controller.signal.aborted) return;
+        if (!active) return;
         if (typeof res?.total === 'number') {
           setLiveProductCount(res.total);
         }
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('Products API warning:', err);
-        }
+        if (active) console.warn('Products API warning:', err);
       });
 
-    fetchCategoriesApi({ signal: controller.signal })
+    fetchCategoriesApi()
       .then((cats) => {
-        if (!active || controller.signal.aborted) return;
+        if (!active) return;
         if (Array.isArray(cats)) {
           setLiveCategoryCount(cats.length);
         }
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('Categories API warning:', err);
-        }
+        if (active) console.warn('Categories API warning:', err);
       });
 
-    fetchOrdersApi({}, { signal: controller.signal })
+    fetchOrdersApi({})
       .then((res) => {
-        if (!active || controller.signal.aborted) return;
+        if (!active) return;
         const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : null;
         if (items) {
           setLiveOrders(items);
         }
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('Orders API warning:', err);
-        }
+        if (active) console.warn('Orders API warning:', err);
       });
 
     return () => {
       active = false;
-      controller.abort();
     };
   }, []);
 

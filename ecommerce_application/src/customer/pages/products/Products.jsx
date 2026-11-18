@@ -120,18 +120,12 @@ export function ProductsPage({
     ],
   );
   const requestKey = JSON.stringify(productQuery);
-  const lastRequestKeyRef = useRef('');
-
   useEffect(() => {
-    if (lastRequestKeyRef.current === requestKey) {
-      return;
-    }
-    lastRequestKeyRef.current = requestKey;
+    let active = true;
 
-    const controller = new AbortController();
-    fetchProducts(productQuery, { signal: controller.signal })
+    fetchProducts(productQuery)
       .then((result) => {
-        if (controller.signal.aborted) return;
+        if (!active) return;
         setCatalog({ ...result, requestKey });
         setLoadError(null);
         if (result.page !== page) {
@@ -139,12 +133,13 @@ export function ProductsPage({
         }
       })
       .catch((error) => {
-        if (error.name !== 'AbortError' && !controller.signal.aborted) {
-          setLoadError({ requestKey, message: error.message });
-        }
+        if (!active) return;
+        setLoadError({ requestKey, message: error.message });
       });
 
-    return () => controller.abort();
+    return () => {
+      active = false;
+    };
   }, [requestKey]);
 
   useEffect(() => {

@@ -60,8 +60,6 @@ export function getTokenTimeRemaining() {
   return 0
 }
 
-const inflightRequests = new Map()
-
 // ----------------- HTTP Client with Interceptor Pipeline -----------------
 class InterceptorManager {
   constructor() {
@@ -96,56 +94,38 @@ export const apiClient = {
       }
     }
 
-    // 2. In-flight Deduplication Guard for concurrent GET requests
-    const method = (config.method || 'GET').toUpperCase()
-    const isGet = method === 'GET'
-    const authHeader = config.headers?.Authorization || 'anon'
-    const cacheKey = isGet ? `${authHeader}:${config.path}` : null
-
-    if (cacheKey && inflightRequests.has(cacheKey)) {
-      return inflightRequests.get(cacheKey)
-    }
-
-    const fetchPromise = (async () => {
-      let response
-      try {
-        response = await fetch(`${backendUrl}${config.path}`, config)
-      } catch (networkError) {
-        let transformedError = networkError
-        for (const handler of this.interceptors.response.handlers) {
-          if (handler?.rejected) {
-            transformedError = (await handler.rejected(transformedError).catch((e) => e)) || transformedError
+    let response
+    try {
+      response = await fetch(`${backendUrl}${config.path}`, config)
+    } catch (networkError) {
+      if (networkError.name === 'AbortError') {
+        throw networkError
+      }
+      let transformedError = networkError
+      for (const handler of this.interceptors.response.handlers) {
+        if (handler?.rejected) {
+          try {
+            const res = await handler.rejected(transformedError)
+            if (res) transformedError = res
+          } catch (e) {
+            transformedError = e
           }
         }
-        throw transformedError
       }
-
-      // 3. Run Response Interceptors (success & HTTP error handling)
-      let result = response
-      for (const handler of this.interceptors.response.handlers) {
-        if (!response.ok && handler?.rejected) {
-          result = await handler.rejected(result)
-        } else if (response.ok && handler?.fulfilled) {
-          result = await handler.fulfilled(result)
-        }
-      }
-
-      return result
-    })()
-
-    if (cacheKey) {
-      if (config.signal) {
-        config.signal.addEventListener('abort', () => {
-          inflightRequests.delete(cacheKey)
-        }, { once: true })
-      }
-      inflightRequests.set(cacheKey, fetchPromise)
-      fetchPromise.finally(() => {
-        inflightRequests.delete(cacheKey)
-      })
+      throw transformedError
     }
 
-    return fetchPromise
+    // 2. Run Response Interceptors (success & HTTP error handling)
+    let result = response
+    for (const handler of this.interceptors.response.handlers) {
+      if (!response.ok && handler?.rejected) {
+        result = await handler.rejected(result)
+      } else if (response.ok && handler?.fulfilled) {
+        result = await handler.fulfilled(result)
+      }
+    }
+
+    return result
   },
 }
 

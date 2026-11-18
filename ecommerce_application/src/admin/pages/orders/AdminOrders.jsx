@@ -11,21 +11,18 @@ export function AdminOrders({ orders: propOrders }) {
 
   useEffect(() => {
     let active = true
-    const controller = new AbortController()
-    fetchOrdersApi({}, { signal: controller.signal })
+    fetchOrdersApi({})
       .then((res) => {
-        if (!active || controller.signal.aborted) return
+        if (!active) return
         const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : null
         if (items) setLiveOrders(items)
       })
       .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.error('Orders API fetch error:', err)
-        }
+        if (!active) return
+        console.error('Orders API fetch error:', err)
       })
     return () => {
       active = false
-      controller.abort()
     }
   }, [])
 
