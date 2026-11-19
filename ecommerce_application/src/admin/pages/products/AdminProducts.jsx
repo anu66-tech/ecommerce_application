@@ -7,7 +7,7 @@ import { downloadCsv } from '../../../utils/csvExport.js'
 import { addProduct, updateProduct, removeProduct as removeProductFromCatalog } from '../../../redux/ProductSlice.js'
 import { removeProductFromCart } from '../../../redux/cartSlice.js'
 import { removeFromWishlist } from '../../../redux/wishlistSlice.js'
-import { fetchProducts, fetchCategoriesApi, createProductApi, updateProductApi, deleteProductApi } from './api/productApi.js'
+import { fetchProducts, createProductApi, updateProductApi, deleteProductApi } from './api/productApi.js'
 import PageHeading from '../../../shared/components/PageHeading.jsx'
 
 async function loadProductImage(file) {
@@ -35,30 +35,10 @@ async function loadProductImage(file) {
 }
 
 export function AdminProducts({ products: propProducts, categories: propCategories }) {
-  const [liveCategories, setLiveCategories] = useState(null)
   const storeProducts = useStore('products') || []
   const storeCategories = useStore('categories') || []
   const products = propProducts || storeProducts
-  const categories = liveCategories || propCategories || storeCategories
-
-  useEffect(() => {
-    let active = true
-    const controller = new AbortController()
-    fetchCategoriesApi({ signal: controller.signal })
-      .then((cats) => {
-        if (!active || controller.signal.aborted) return
-        if (Array.isArray(cats) && cats.length) setLiveCategories(cats)
-      })
-      .catch((err) => {
-        if (err.name !== 'AbortError' && !controller.signal.aborted) {
-          console.warn('Admin categories load warning:', err)
-        }
-      })
-    return () => {
-      active = false
-      controller.abort()
-    }
-  }, [])
+  const categories = propCategories || storeCategories
 
   const [editing, setEditing] = useState(null)
   const [search, setSearch] = useState('')

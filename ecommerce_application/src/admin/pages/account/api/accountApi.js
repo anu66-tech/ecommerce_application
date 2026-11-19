@@ -12,6 +12,11 @@ export function fetchAuthSessionApi({ signal } = {}) {
   return requestApi('/auth/me', { signal })
 }
 
+// Strictly 1 API call for all Admin Account metrics
+export function fetchAdminAccountDataApi({ signal } = {}) {
+  return requestApi('/store', { signal })
+}
+
 export function adminLoginApi({ email, username, password }) {
   const mail = email || username
   return requestApi('/auth/admin/login', {

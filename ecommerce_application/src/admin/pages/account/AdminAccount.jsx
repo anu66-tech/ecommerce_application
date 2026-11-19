@@ -4,11 +4,8 @@ import { useStore, setStore } from '../../../shared/store/store.js';
 import {
   logoutApi,
   clearAuthToken,
+  fetchAdminAccountDataApi,
 } from './api/accountApi.js';
-import { fetchInventoryApi } from '../inventory/api/inventoryApi.js';
-import { fetchProducts } from '../products/api/productApi.js';
-import { fetchCategoriesApi } from '../categories/api/categoryApi.js';
-import { fetchOrdersApi } from '../orders/api/orderApi.js';
 
 export default function AdminAccount() {
   const navigate = useNavigate();
@@ -22,54 +19,26 @@ export default function AdminAccount() {
   const [liveCategoryCount, setLiveCategoryCount] = useState(null);
   const [liveOrders, setLiveOrders] = useState(null);
 
-  // Load live counts and inventory metrics directly from APIs
+  // Strictly 1 API call for all Admin Account metrics
   useEffect(() => {
     let active = true;
 
-    fetchInventoryApi({ limit: 100 })
+    fetchAdminAccountDataApi()
       .then((res) => {
-        if (!active) return;
-        const summary = res?.summary;
-        if (summary) {
-          setLiveInventoryAlerts((summary.lowStock || 0) + (summary.outOfStock || 0));
-        }
-      })
-      .catch((err) => {
-        if (active) console.warn('Inventory API warning:', err);
-      });
+        if (!active || !res) return;
+        const products = Array.isArray(res.products) ? res.products : [];
+        const categories = Array.isArray(res.categories) ? res.categories : [];
+        const orders = Array.isArray(res.orders) ? res.orders : [];
 
-    fetchProducts({ limit: 1 })
-      .then((res) => {
-        if (!active) return;
-        if (typeof res?.total === 'number') {
-          setLiveProductCount(res.total);
-        }
+        setLiveProductCount(products.length);
+        setLiveCategoryCount(categories.length);
+        setLiveOrders(orders);
+        setLiveInventoryAlerts(
+          products.filter((p) => p.stock <= 10).length
+        );
       })
       .catch((err) => {
-        if (active) console.warn('Products API warning:', err);
-      });
-
-    fetchCategoriesApi()
-      .then((cats) => {
-        if (!active) return;
-        if (Array.isArray(cats)) {
-          setLiveCategoryCount(cats.length);
-        }
-      })
-      .catch((err) => {
-        if (active) console.warn('Categories API warning:', err);
-      });
-
-    fetchOrdersApi({})
-      .then((res) => {
-        if (!active) return;
-        const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : null;
-        if (items) {
-          setLiveOrders(items);
-        }
-      })
-      .catch((err) => {
-        if (active) console.warn('Orders API warning:', err);
+        if (active) console.warn('Admin account data fetch warning:', err);
       });
 
     return () => {
